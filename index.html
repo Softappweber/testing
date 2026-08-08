@@ -517,5 +517,65 @@ setInterval(() => {
 }, 30000);
 </script>
 
+  // tracking code from the html
+
+  <!-- Website Tracker Pro -->
+<script>
+(function() {
+  // ===== UPDATE THESE VALUES =====
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaHxhfnvnvLIsNH3xQIYB_BuKihlKknMOo8hQasd7l6pJlOPdeR2Fx71kSUy_PjgJZHg/exec';
+  const PAGE_ID = 'testing';
+  const EMAIL = 'softappweber@gmail.com';
+  // ================================
+  
+  // Track page view
+  const data = {
+    page: PAGE_ID,
+    email: EMAIL,
+    url: window.location.href,
+    referrer: document.referrer || 'direct',
+    time: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    scrollDepth: 0,
+    clicks: 0,
+    sessionDuration: 0
+  };
+  
+  // Track scroll depth
+  let maxScroll = 0;
+  window.addEventListener('scroll', () => {
+    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+    if (scrollPercent > maxScroll) {
+      maxScroll = scrollPercent;
+      data.scrollDepth = Math.round(maxScroll);
+    }
+  });
+  
+  // Track clicks
+  window.addEventListener('click', () => {
+    data.clicks++;
+  });
+  
+  // Track session duration
+  const startTime = Date.now();
+  window.addEventListener('beforeunload', () => {
+    data.sessionDuration = Math.round((Date.now() - startTime) / 1000);
+  });
+  
+  // Send data
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(() => {});
+  
+  console.log('📊 Website tracker initialized');
+})();
+</script>
+      
+
 </body>
 </html>
