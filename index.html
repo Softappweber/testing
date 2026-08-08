@@ -1,521 +1,589 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Website Tracker Pro</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elegant Single Page</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root{
+      --bg1:#070A12;
+      --bg2:#0B1630;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:#EAF0FF;
+      --muted:rgba(234,240,255,.72);
+      --stroke:rgba(255,255,255,.14);
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --accent1:#7C3AED; /* violet */
+      --accent2:#22D3EE; /* cyan */
+      --accent3:#34D399; /* green */
+      --radius: 18px;
+      --max: 1100px;
     }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f2f5;
-      color: #333;
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(900px 600px at 85% 25%, rgba(34,211,238,.28), transparent 52%),
+        radial-gradient(900px 700px at 60% 90%, rgba(52,211,153,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      overflow-x:hidden;
     }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
+
+    /* Decorative noise */
+    body:before{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+      mix-blend-mode:overlay;
+      opacity:.10;
     }
-    
-    /* Header */
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 15px;
-      margin-bottom: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+    .wrap{max-width:var(--max); margin:0 auto; padding: 0 22px;}
+    nav{
+      position:sticky; top:0;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(7,10,18,.72), rgba(7,10,18,.35));
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      z-index:10;
     }
-    
-    .header h1 {
-      font-size: 2.5rem;
+    .nav-inner{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 16px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:800; letter-spacing:.2px;
+    }
+    .logo{
+      width:36px; height:36px; border-radius: 12px;
+      background:
+        radial-gradient(14px 14px at 30% 30%, rgba(255,255,255,.45), transparent 60%),
+        linear-gradient(135deg, var(--accent1), var(--accent2));
+      box-shadow: 0 10px 30px rgba(124,58,237,.25);
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .links{display:flex; gap:18px; align-items:center; flex-wrap:wrap;}
+    .links a{
+      text-decoration:none;
+      color:var(--muted);
+      font-weight:600;
+      font-size: 14px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      transition: .2s ease;
+      border:1px solid transparent;
+    }
+    .links a:hover{
+      color:var(--text);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    .cta{
+      text-decoration:none;
+      font-weight:800;
+      font-size: 14px;
+      padding: 11px 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(34,211,238,.85));
+      color:#061018;
+      box-shadow: 0 16px 44px rgba(34,211,238,.15), 0 16px 44px rgba(124,58,237,.18);
+      border:1px solid rgba(255,255,255,.16);
+      transition:.2s ease;
+      white-space:nowrap;
+    }
+    .cta:hover{transform: translateY(-1px); filter:saturate(1.08);}
+
+    /* Hero */
+    .hero{
+      padding: 46px 0 28px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 26px;
+      align-items:center;
+    }
+    @media (max-width: 940px){
+      .hero{grid-template-columns:1fr; padding-top: 28px;}
+    }
+
+    .kicker{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--muted);
+      font-weight:700;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      box-shadow: 0 0 0 6px rgba(34,211,238,.12);
+    }
+    h1{
+      margin:0 0 12px;
+      font-size: clamp(34px, 4.2vw, 56px);
+      line-height:1.03;
+      letter-spacing:-.6px;
+    }
+    .grad-text{
+      background: linear-gradient(90deg, rgba(124,58,237,1), rgba(34,211,238,1), rgba(52,211,153,1));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .lead{
+      margin:0 0 18px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height:1.7;
+      max-width: 58ch;
+    }
+
+    .actions{
+      display:flex; gap: 12px; flex-wrap:wrap;
+      align-items:center;
+      margin-top: 8px;
+    }
+    .btn{
+      border-radius: 16px;
+      padding: 12px 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      text-decoration:none;
+      font-weight:800;
+      font-size: 14px;
+      transition: .2s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.09);
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(34,211,238,.85));
+      color:#061018;
+      border-color: rgba(255,255,255,.18);
+    }
+    .icon{
+      width: 18px; height: 18px;
+      display:inline-block;
+    }
+
+    /* Right card */
+    .hero-card{
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .hero-card:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(400px 260px at 20% 0%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(380px 280px at 90% 30%, rgba(34,211,238,.22), transparent 55%);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .card-inner{position:relative; padding: 18px;}
+    .mini{
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      font-weight:800;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .meter{
+      width: 92px; height: 92px; border-radius: 24px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.14);
+      display:grid; place-items:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .meter:before{
+      content:"";
+      position:absolute; inset:-40px;
+      background: conic-gradient(from 180deg, rgba(124,58,237,1), rgba(34,211,238,1), rgba(52,211,153,1), rgba(124,58,237,1));
+      opacity:.55;
+      animation: spin 7s linear infinite;
+    }
+    .meter strong{
+      position:relative;
+      width: 64px; height:64px;
+      display:grid; place-items:center;
+      border-radius: 18px;
+      background: rgba(7,10,18,.65);
+      border:1px solid rgba(255,255,255,.14);
+      font-size: 18px;
+    }
+    @keyframes spin {to{transform: rotate(360deg)}}
+
+    .list{
+      display:grid; gap: 10px;
+      margin-top: 10px;
+    }
+    .li{
+      padding: 12px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      display:flex; gap: 12px; align-items:flex-start;
+    }
+    .check{
+      width: 22px; height: 22px;
+      border-radius: 8px;
+      background: rgba(34,211,238,.16);
+      border:1px solid rgba(34,211,238,.35);
+      display:grid; place-items:center;
+      color: rgba(234,240,255,.95);
+      font-weight:900;
+      flex: 0 0 auto;
+    }
+    .li b{display:block; font-size: 14px; margin-bottom: 2px;}
+    .li span{color: var(--muted); font-size: 13px; line-height:1.5;}
+
+    /* Sections */
+    section{padding: 24px 0;}
+    .section-title{
+      display:flex; align-items:flex-end; justify-content:space-between; gap: 14px;
+      margin-bottom: 14px;
+    }
+    .section-title h2{
+      margin:0;
+      font-size: 22px;
+      letter-spacing:-.2px;
+    }
+    .section-title p{
+      margin:0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 980px){
+      .grid3{grid-template-columns:1fr; }
+    }
+    .feature{
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      padding: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.18);
+    }
+    .feature .top{
+      display:flex; align-items:center; justify-content:space-between; gap: 12px;
       margin-bottom: 10px;
     }
-    
-    .header p {
-      opacity: 0.9;
-      font-size: 1.1rem;
-    }
-    
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      text-align: center;
-      transition: transform 0.3s;
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-5px);
-    }
-    
-    .stat-card .number {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #667eea;
-    }
-    
-    .stat-card .label {
-      color: #666;
-      margin-top: 5px;
-    }
-    
-    /* Dashboard */
-    .dashboard {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    @media (max-width: 768px) {
-      .dashboard {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .card {
-      background: white;
-      border-radius: 15px;
-      padding: 25px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    }
-    
-    .card h3 {
-      margin-bottom: 20px;
-      color: #444;
-      border-bottom: 2px solid #f0f2f5;
-      padding-bottom: 10px;
-    }
-    
-    .visit-item {
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f2f5;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .visit-item:last-child {
-      border-bottom: none;
-    }
-    
-    .visit-page {
-      font-weight: 600;
-      color: #667eea;
-    }
-    
-    .visit-time {
-      color: #888;
-      font-size: 0.9rem;
-    }
-    
-    /* Tracker Code Display */
-    .code-display {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 20px;
-      border-radius: 10px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      overflow-x: auto;
-      margin-top: 20px;
-      position: relative;
-    }
-    
-    .code-display .copy-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.8rem;
-    }
-    
-    .code-display .copy-btn:hover {
-      background: #764ba2;
-    }
-    
-    .badge {
-      display: inline-block;
-      background: #28a745;
-      color: white;
-      padding: 2px 10px;
-      border-radius: 12px;
+    .pill{
+      display:inline-flex;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color: var(--muted);
+      font-weight:800;
       font-size: 12px;
+      white-space:nowrap;
     }
-    
-    .badge.warning {
-      background: #ffc107;
-      color: #333;
+    .feature h3{margin:0 0 6px; font-size: 16px;}
+    .feature p{margin:0; color: var(--muted); line-height:1.6; font-size: 14px;}
+
+    .callout{
+      border-radius: var(--radius);
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.14);
+      display:flex; align-items:center; justify-content:space-between; gap: 16px;
+      flex-wrap:wrap;
     }
-    
-    .badge.danger {
-      background: #dc3545;
+    .callout .text h2{margin:0 0 6px; font-size: 20px;}
+    .callout .text p{margin:0; color: var(--muted); line-height:1.6; font-size: 14px; max-width: 62ch;}
+
+    footer{
+      padding: 26px 0 40px;
+      color: rgba(234,240,255,.55);
+      font-size: 13px;
     }
-    
-    /* Form */
-    .form-group {
-      margin-bottom: 15px;
+    .foot{
+      display:flex; justify-content:space-between; align-items:center; gap: 12px;
+      flex-wrap:wrap;
+      border-top: 1px solid rgba(255,255,255,.10);
+      padding-top: 16px;
     }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 600;
+    .social{
+      display:flex; gap: 10px; align-items:center; flex-wrap:wrap;
     }
-    
-    .form-group input, .form-group textarea {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.3s;
+    .s{
+      text-decoration:none;
+      color: rgba(234,240,255,.7);
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding: 10px 12px;
+      border-radius: 14px;
+      transition:.2s ease;
+      font-weight:800;
+      font-size: 13px;
     }
-    
-    .form-group input:focus, .form-group textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-    
-    .btn {
-      padding: 12px 30px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-    }
-    
-    .btn-danger:hover {
-      background: #c82333;
-    }
-    
-    /* Footer */
-    .footer {
-      text-align: center;
-      padding: 30px;
-      color: #888;
-      margin-top: 30px;
-    }
-    
-    .status-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 8px;
-    }
-    
-    .status-dot.online {
-      background: #28a745;
-    }
-    
-    .status-dot.offline {
-      background: #dc3545;
-    }
+    .s:hover{transform: translateY(-1px); color: var(--text); border-color: rgba(255,255,255,.22);}
+
+    /* Smooth scrolling */
+    html{scroll-behavior:smooth}
   </style>
 </head>
 <body>
-
-<div class="container">
-  <!-- Header -->
-  <div class="header">
-    <h1>🚀 Website Tracker Pro</h1>
-    <p>Real-time visitor tracking with analytics dashboard</p>
-    <p style="margin-top: 10px; font-size: 0.9rem;">
-      <span class="status-dot online"></span> 
-      <span id="trackerStatus">Tracker Active</span>
-      <span style="margin-left: 20px;">📊 Last visit: <span id="lastVisitTime">Loading...</span></span>
-    </p>
-  </div>
-  
-  <!-- Stats -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card">
-      <div class="number" id="totalVisits">0</div>
-      <div class="label">Total Visits</div>
-    </div>
-    <div class="stat-card">
-      <div class="number" id="uniquePages">0</div>
-      <div class="label">Unique Pages</div>
-    </div>
-    <div class="stat-card">
-      <div class="number" id="todayVisits">0</div>
-      <div class="label">Today's Visits</div>
-    </div>
-    <div class="stat-card">
-      <div class="number" id="topPage">-</div>
-      <div class="label">Top Page</div>
-    </div>
-  </div>
-  
-  <!-- Dashboard -->
-  <div class="dashboard">
-    <div class="card">
-      <h3>📋 Recent Visits</h3>
-      <div id="recentVisits">
-        <div class="visit-item">
-          <span style="color: #888;">Loading visits...</span>
+  <nav>
+    <div class="wrap nav-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:14px;color:rgba(234,240,255,.9);line-height:1;">YourBrand</div>
+          <div style="font-size:12px;color:rgba(234,240,255,.55);font-weight:700;line-height:1.1;">Single-page website</div>
         </div>
       </div>
-    </div>
-    
-    <div class="card">
-      <h3>🌍 Top Referrers</h3>
-      <div id="topReferrers">
-        <div class="visit-item">
-          <span style="color: #888;">Loading...</span>
-        </div>
+
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+        <a class="cta" href="#contact">Get Started</a>
       </div>
     </div>
-  </div>
-  
-  <!-- Tracker Code -->
-  <div class="card">
-    <h3>📝 Add Tracker to Your Website</h3>
-    <p style="color: #666; margin-bottom: 15px;">
-      Copy and paste this code into your website's HTML, just before the closing <code>&lt;/body&gt;</code> tag.
-    </p>
-    
-    <div class="code-display" id="trackerCode">
-      <button class="copy-btn" onclick="copyTrackerCode()">📋 Copy</button>
-      <pre style="margin: 0; white-space: pre-wrap; word-break: break-all;">
-&lt;!-- Website Tracker Pro --&gt;
-&lt;script&gt;
-(function() {
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0cKTONA3ircIp_8-4ppG89Xe-paIpRgKIASWJ7dX2tmoXaRbVilvIBWfKNkQVoMw/exec';
-  const PAGE_ID = 'testing';
-  const EMAIL = 'softappweber@gmail.com';
-  
-  // Track page view
-  const data = {
-    page: PAGE_ID,
-    email: EMAIL,
-    url: window.location.href,
-    referrer: document.referrer || 'direct',
-    time: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-    screenWidth: window.screen.width,
-    screenHeight: window.screen.height,
-    scrollDepth: 0,
-    clicks: 0,
-    sessionDuration: 0
-  };
-  
-  // Track scroll depth
-  let maxScroll = 0;
-  window.addEventListener('scroll', () => {
-    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-    if (scrollPercent > maxScroll) {
-      maxScroll = scrollPercent;
-      data.scrollDepth = Math.round(maxScroll);
-    }
-  });
-  
-  // Track clicks
-  window.addEventListener('click', () => {
-    data.clicks++;
-  });
-  
-  // Track session duration
-  const startTime = Date.now();
-  window.addEventListener('beforeunload', () => {
-    data.sessionDuration = Math.round((Date.now() - startTime) / 1000);
-  });
-  
-  // Send data
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).catch(() => {});
-  
-  console.log('📊 Website tracker initialized');
-})();
-&lt;/script&gt;
-      </pre>
-    </div>
-    
-    <div style="margin-top: 20px; display: flex; gap: 15px;">
-      <button class="btn btn-primary" onclick="refreshStats()">🔄 Refresh Stats</button>
-      <button class="btn btn-danger" onclick="clearData()">🗑️ Clear Old Data</button>
-    </div>
-  </div>
-  
-  <!-- Footer -->
-  <div class="footer">
-    <p>© 2026 Website Tracker Pro - Powered by Google Apps Script</p>
-  </div>
-</div>
+  </nav>
 
-<script>
-// ============================================
-// DASHBOARD SCRIPT
-// ============================================
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <div class="kicker"><span class="dot"></span> Fast • Modern • Clean</div>
+        <h1>
+          Build a <span class="grad-text">beautiful</span> one‑page site in minutes.
+        </h1>
+        <p class="lead">
+          A sleek hero, glowing cards, and a polished layout that looks great on mobile and desktop.
+          Replace the text and colors with your own brand.
+        </p>
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0cKTONA3ircIp_8-4ppG89Xe-paIpRgKIASWJ7dX2tmoXaRbVilvIBWfKNkQVoMw/exec';
+        <div class="actions">
+          <a class="btn primary" href="#contact">
+            <span class="icon" aria-hidden="true">⚡</span> Start now
+          </a>
+          <a class="btn" href="#features">
+            <span class="icon" aria-hidden="true">✨</span> See features
+          </a>
+        </div>
+      </div>
 
-// Load stats on page load
-document.addEventListener('DOMContentLoaded', () => {
-  refreshStats();
-  loadRecentVisits();
-  updateLastVisitTime();
-});
-
-function refreshStats() {
-  fetch(SCRIPT_URL + '?action=stats')
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('totalVisits').textContent = data.totalVisits || 0;
-      document.getElementById('uniquePages').textContent = data.uniquePages || 0;
-      
-      if (data.topPages && data.topPages.length > 0) {
-        document.getElementById('topPage').textContent = data.topPages[0][0];
-      }
-      
-      // Update stats grid
-      updateStatsGrid(data);
-    })
-    .catch(error => {
-      console.warn('Error loading stats:', error);
-    });
-}
-
-function loadRecentVisits() {
-  fetch(SCRIPT_URL + '?action=recent&limit=10')
-    .then(response => response.json())
-    .then(data => {
-      const container = document.getElementById('recentVisits');
-      container.innerHTML = '';
-      
-      if (!data.visits || data.visits.length === 0) {
-        container.innerHTML = '<div class="visit-item"><span style="color: #888;">No visits yet</span></div>';
-        return;
-      }
-      
-      data.visits.forEach(visit => {
-        const div = document.createElement('div');
-        div.className = 'visit-item';
-        div.innerHTML = `
-          <div>
-            <span class="visit-page">${visit.page || 'unknown'}</span>
-            <span style="color: #888; font-size: 0.8rem; margin-left: 10px;">${visit.referrer || 'direct'}</span>
+      <aside class="hero-card">
+        <div class="card-inner">
+          <div class="mini">
+            <div class="badge">Glow UI Kit</div>
+            <div class="meter"><strong>95%</strong></div>
           </div>
-          <div class="visit-time">${new Date(visit.timestamp).toLocaleTimeString()}</div>
-        `;
-        container.appendChild(div);
-      });
-    })
-    .catch(error => {
-      console.warn('Error loading visits:', error);
-    });
-}
 
-function updateStatsGrid(data) {
-  // Calculate today's visits
-  if (data.totalVisits) {
-    // Simple estimate for demo
-    document.getElementById('todayVisits').textContent = Math.floor(data.totalVisits / 7) || 0;
-  }
-}
+          <div class="list">
+            <div class="li">
+              <div class="check">✓</div>
+              <div>
+                <b>Fast load</b>
+                <span>Lightweight CSS + simple structure.</span>
+              </div>
+            </div>
+            <div class="li">
+              <div class="check">✓</div>
+              <div>
+                <b>Mobile friendly</b>
+                <span>Responsive grid and readable typography.</span>
+              </div>
+            </div>
+            <div class="li">
+              <div class="check">✓</div>
+              <div>
+                <b>Premium style</b>
+                <span>Gradients, glass cards, and subtle motion.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </header>
 
-function updateLastVisitTime() {
-  fetch(SCRIPT_URL + '?action=recent&limit=1')
-    .then(response => response.json())
-    .then(data => {
-      if (data.visits && data.visits.length > 0) {
-        const lastVisit = new Date(data.visits[0].timestamp);
-        document.getElementById('lastVisitTime').textContent = lastVisit.toLocaleString();
-      } else {
-        document.getElementById('lastVisitTime').textContent = 'No visits yet';
-      }
-    })
-    .catch(() => {
-      document.getElementById('lastVisitTime').textContent = 'Unable to load';
-    });
-}
+    <section id="features">
+      <div class="section-title">
+        <h2>Features</h2>
+        <p>Everything you need for a standout landing page.</p>
+      </div>
 
-function copyTrackerCode() {
-  const codeBlock = document.querySelector('.code-display pre');
-  const text = codeBlock.textContent;
-  
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.copy-btn');
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => {
-      btn.textContent = '📋 Copy';
-    }, 2000);
-  }).catch(() => {
-    // Fallback
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    alert('Code copied to clipboard!');
-  });
-}
+      <div class="grid3">
+        <div class="feature">
+          <div class="top">
+            <div class="pill">Section 01</div>
+            <div class="pill" style="border-color:rgba(124,58,237,.35); background: rgba(124,58,237,.12);">Design</div>
+          </div>
+          <h3>Glass + glow cards</h3>
+          <p>Clean contrast, modern spacing, and a premium feel without heavy libraries.</p>
+        </div>
 
-function clearData() {
-  if (confirm('This will delete visits older than 30 days. Continue?')) {
-    fetch(SCRIPT_URL + '?action=clear&days=30')
-      .then(response => response.json())
-      .then(data => {
-        alert(data.message || 'Data cleared successfully!');
-        refreshStats();
-        loadRecentVisits();
-      })
-      .catch(error => {
-        alert('Error clearing data: ' + error);
-      });
-  }
-}
+        <div class="feature">
+          <div class="top">
+            <div class="pill">Section 02</div>
+            <div class="pill" style="border-color:rgba(34,211,238,.35); background: rgba(34,211,238,.12);">Speed</div>
+          </div>
+          <h3>Simple & snappy</h3>
+          <p>Structured HTML with fast CSS effects and smooth scrolling.</p>
+        </div>
 
-// Auto-refresh every 30 seconds
-setInterval(() => {
-  refreshStats();
-  loadRecentVisits();
-}, 30000);
-</script>
+        <div class="feature">
+          <div class="top">
+            <div class="pill">Section 03</div>
+            <div class="pill" style="border-color:rgba(52,211,153,.35); background: rgba(52,211,153,.10);">UX</div>
+          </div>
+          <h3>Clear call to action</h3>
+          <p>Prominent buttons and navigation so visitors know what to do next.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="gallery">
+      <div class="section-title">
+        <h2>Gallery</h2>
+        <p>Swap these with your real images later.</p>
+      </div>
+
+      <div class="grid3">
+        <div class="feature">
+          <h3>Hero Image</h3>
+          <p style="margin-bottom:12px;">
+            Use your product/service picture here.
+          </p>
+          <div style="height:140px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:
+            radial-gradient(120px 70px at 25% 30%, rgba(124,58,237,.35), transparent 60%),
+            radial-gradient(120px 70px at 70% 60%, rgba(34,211,238,.25), transparent 60%),
+            rgba(255,255,255,.04);"></div>
+        </div>
+
+        <div class="feature">
+          <h3>Feature Cards</h3>
+          <p style="margin-bottom:12px;">
+            Add screenshots or mini dashboards.
+          </p>
+          <div style="height:140px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:
+            radial-gradient(120px 70px at 30% 25%, rgba(34,211,238,.30), transparent 60%),
+            radial-gradient(120px 70px at 75% 65%, rgba(52,211,153,.18), transparent 60%),
+            rgba(255,255,255,.04);"></div>
+        </div>
+
+        <div class="feature">
+          <h3>Before / After</h3>
+          <p style="margin-bottom:12px;">
+            Perfect for conversions and testimonials.
+          </p>
+          <div style="height:140px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:
+            radial-gradient(120px 70px at 25% 40%, rgba(124,58,237,.26), transparent 60%),
+            radial-gradient(120px 70px at 75% 50%, rgba(34,211,238,.18), transparent 60%),
+            rgba(255,255,255,.04);"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="section-title">
+        <h2>Pricing</h2>
+        <p>Replace with your plans.</p>
+      </div>
+
+      <div class="grid3">
+        <div class="feature">
+          <div class="top">
+            <div class="pill">Starter</div>
+            <div class="pill" style="background: rgba(255,255,255,.06);">Free</div>
+          </div>
+          <h3>$0 / month</h3>
+          <p>Basic landing page with essential sections.</p>
+        </div>
+
+        <div class="feature" style="border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.07);">
+          <div class="top">
+            <div class="pill">Pro</div>
+            <div class="pill" style="border-color:rgba(34,211,238,.40); background: rgba(34,211,238,.14);">Popular</div>
+          </div>
+          <h3>$19 / month</h3>
+          <p>Premium layout, more sections, better conversion focus.</p>
+        </div>
+
+        <div class="feature">
+          <div class="top">
+            <div class="pill">Business</div>
+            <div class="pill" style="background: rgba(255,255,255,.06);">Custom</div>
+          </div>
+          <h3>Let’s talk</h3>
+          <p>For teams who want custom styling and pages.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="callout">
+        <div class="text">
+          <h2>Contact</h2>
+          <p>Use this button to link to WhatsApp, email, or a form. (No backend included.)</p>
+        </div>
+        <div class="actions" style="margin:0;">
+          <a class="btn primary" href="mailto:hello@example.com">
+            <span class="icon" aria-hidden="true">✉️</span> Email us
+          </a>
+          <a class="btn" href="#">
+            <span class="icon" aria-hidden="true">📅</span> Book a call
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="foot">
+        <div>© <span id="y"></span> YourBrand. All rights reserved.</div>
+        <div class="social">
+          <a class="s" href="#">Twitter</a>
+          <a class="s" href="#">Instagram</a>
+          <a class="s" href="#">LinkedIn</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+
+
 
   // tracking code from the html
 
