@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Box</title>
+<style>
+:root{
+  --bg:#0a0a0f;
+  --surface:#131318;
+  --surface2:#1a1a22;
+  --border:#23232e;
+  --text:#f5f5f7;
+  --text2:#a1a1aa;
+  --text3:#6b6b76;
+  --accent:#6366f1;
+  --accent2:#8b5cf6;
+  --danger:#ef4444;
+  --success:#10b981;
+  --radius:14px;
+  --radius-lg:20px;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);
+  --shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+  --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="light"]{
+  --bg:#f8f9fc;
+  --surface:#ffffff;
+  --surface2:#f1f2f6;
+  --border:#e5e7eb;
+  --text:#111113;
+  --text2:#55555e;
+  --text3:#9a9aa5;
+  --shadow:0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg:0 20px 50px rgba(0,0,0,0.1);
+}
+[data-theme="ocean"]{
+  --bg:#0c1a2d;--surface:#10233d;--surface2:#16314f;--border:#1e4264;
+  --text:#e8f0fa;--text2:#9ab8d8;--text3:#5a7d9e;
+  --accent:#0ea5e9;--accent2:#3b82f6;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="forest"]{
+  --bg:#0d1a12;--surface:#132619;--surface2:#1a3320;--border:#23452b;
+  --text:#e8f5ec;--text2:#a3c9b0;--text3:#5e8c6d;
+  --accent:#22c55e;--accent2:#16a34a;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="sunset"]{
+  --bg:#1a0f0f;--surface:#261414;--surface2:#331b1b;--border:#452525;
+  --text:#faf0f0;--text2:#c9a3a3;--text3:#8e5e5e;
+  --accent:#f97316;--accent2:#ef4444;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="rose"]{
+  --bg:#1a0f14;--surface:#261418;--surface2:#331b20;--border:#45252c;
+  --text:#faf0f2;--text2:#c9a3aa;--text3:#8e5e66;
+  --accent:#ec4899;--accent2:#f43f5e;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="midnight"]{
+  --bg:#0a0a1a;--surface:#12122a;--surface2:#1a1a3a;--border:#252550;
+  --text:#e8e8ff;--text2:#a3a3cc;--text3:#5e5e8e;
+  --accent:#8b5cf6;--accent2:#6d28d9;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="gold"]{
+  --bg:#1a140a;--surface:#261d0f;--surface2:#332815;--border:#453620;
+  --text:#faf5e8;--text2:#c9bda3;--text3:#8e8360;
+  --accent:#f59e0b;--accent2:#d97706;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="arctic"]{
+  --bg:#0a141f;--surface:#0f1e2e;--surface2:#14283d;--border:#1e3a55;
+  --text:#e8f4fa;--text2:#a3c4d8;--text3:#5e829e;
+  --accent:#38bdf8;--accent2:#0284c7;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+[data-theme="neon"]{
+  --bg:#0a0f0a;--surface:#0f150f;--surface2:#142014;--border:#1e301e;
+  --text:#e8fae8;--text2:#a3c9a3;--text3:#5e8e5e;
+  --accent:#22d3ee;--accent2:#ec4899;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  transition:background 0.4s ease,color 0.4s ease;
+}
+.app{max-width:1200px;margin:auto;padding:24px 20px 60px}
+#uploadProgressContainer{position:fixed;top:0;left:0;width:100%;z-index:9999;display:none}
+#uploadProgressContainer.active{display:block}
+#uploadProgressBar{height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.3s ease;box-shadow:0 0 20px rgba(99,102,241,0.6)}
+#uploadProgressText{position:fixed;top:12px;right:16px;background:var(--surface);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:9999;display:none}
+#uploadProgressText.active{display:block}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.brand h1{font-size:20px;font-weight:700;letter-spacing:-0.4px}
+.brand p{font-size:11px;color:var(--text3);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:10px}
+#status{font-size:11px;color:var(--text2);background:var(--surface2);padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-weight:500}
+.theme-select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:13px;cursor:pointer;font-weight:500;transition:var(--transition)}
+.theme-select:focus{outline:none;border-color:var(--accent)}
+.theme-select option{background:var(--surface);color:var(--text)}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:24px;background:var(--surface);padding:6px;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
+nav button{border:0;background:transparent;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:var(--transition);letter-spacing:0.2px}
+nav button:hover{background:var(--surface2);color:var(--text)}
+nav button.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600;box-shadow:0 8px 20px rgba(99,102,241,0.3)}
+.panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow)}
+.panel.active{display:block;animation:panelIn 0.35s cubic-bezier(0.4,0,0.2,1)}
+@keyframes panelIn{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.panel h2{font-size:18px;margin:0 0 20px;font-weight:600;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
+input,textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;font:inherit;font-size:14px;background:var(--surface2);color:var(--text);transition:var(--transition)}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(99,102,241,0.15);background:var(--surface)}
+textarea{min-height:150px;resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0;border-radius:10px;padding:12px 24px;cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition);letter-spacing:0.2px}
+button.primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(99,102,241,0.4)}
+button.primary:active{transform:translateY(0)}
+.field{margin-bottom:14px}
+.filebox{border:2px dashed var(--border);border-radius:var(--radius);padding:36px;text-align:center;margin-bottom:16px;cursor:pointer;transition:var(--transition);background:var(--surface2)}
+.filebox:hover{border-color:var(--accent);background:var(--surface);transform:scale(1.01)}
+.filebox-label{font-size:14px;color:var(--text2);font-weight:500}
+.filebox input{display:none}
+.item{border-top:1px solid var(--border);padding:16px 0;transition:var(--transition);border-radius:8px;position:relative}
+.item:first-child{border-top:0}
+.item:hover{background:var(--surface2);margin:0 -12px;padding:16px 12px}
+.item-title{font-weight:600;margin-bottom:6px;font-size:14px;color:var(--text)}
+.item-meta{font-size:11px;color:var(--text3);margin-top:4px}
+.item a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:var(--transition);font-size:13px}
+.item a:hover{border-bottom-color:var(--accent)}
+.item-actions{display:flex;gap:8px;margin-top:10px}
+.item-action-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text2);transition:var(--transition);font-weight:500}
+.item-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface)}
+.empty{color:var(--text3);padding:28px 0;text-align:center;font-size:14px;background:var(--surface2);border-radius:10px;border:1px dashed var(--border)}
+@media(max-width:700px){nav{grid-template-columns:repeat(2,1fr);gap:4px}header{flex-direction:column;align-items:flex-start;gap:14px}.header-right{width:100%;justify-content:space-between;flex-wrap:wrap}.panel{padding:18px}.filebox{padding:24px}}
+</style>
+</head>
+<body>
+
+<div id="uploadProgressContainer"><div id="uploadProgressBar"></div></div>
+<div id="uploadProgressText">Uploading...</div>
+
+<div id="connectSection" style="display:none;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:520px;width:100%;text-align:center;">
+    <div style="width:100px;height:100px;margin:0 auto 30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#fff;box-shadow:0 20px 60px rgba(99,102,241,0.5);animation:float 3s ease-in-out infinite;">B</div>
+    <style>@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}</style>
+    <h1 style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:12px;">Welcome to Box</h1>
+    <p style="font-size:16px;color:var(--text2);margin-bottom:40px;line-height:1.6;">Your personal cloud space.<br>Connect your Google Drive to get started.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:30px 0">
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">15GB Storage</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">No Subscription</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">Any Device</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">Private</span>
+    </div>
+    <button onclick="connectGoogleDrive()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0;border-radius:16px;padding:18px 40px;font-size:17px;font-weight:700;cursor:pointer;box-shadow:0 10px 30px rgba(99,102,241,0.3);">🔗 Connect Google Drive</button>
+    <p style="font-size:12px;color:var(--text3);margin-top:24px;">One-time login • Lifetime access</p>
+  </div>
+</div>
+
+<div class="app" id="mainContent" style="display:none;">
+<header>
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <div><h1>Box</h1><p>Personal Cloud</p></div>
+  </div>
+  <div class="header-right">
+    <span id="status">Ready</span>
+    <select class="theme-select" id="themeSelect" onchange="changeTheme(this.value)">
+      <option value="dark">🌙 Dark</option>
+      <option value="light">☀️ Light</option>
+      <option value="ocean">🌊 Ocean</option>
+      <option value="forest">🌲 Forest</option>
+      <option value="sunset">🌅 Sunset</option>
+      <option value="rose">🌹 Rose</option>
+      <option value="midnight">🌌 Midnight</option>
+      <option value="gold">👑 Gold</option>
+      <option value="arctic">❄️ Arctic</option>
+      <option value="neon">💎 Neon</option>
+    </select>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="photos">📸 Photos</button>
+  <button data-tab="bookmarks">🔖 Bookmarks</button>
+  <button data-tab="notes">📝 Notes</button>
+  <button data-tab="links">🔗 Links</button>
+  <button data-tab="files">📁 Files</button>
+</nav>
+
+<section id="photos" class="panel">
+  <h2>📸 Photos</h2>
+  <div class="filebox" onclick="document.getElementById('photoInput').click()">
+    <div class="filebox-label">📸 Click to choose photos</div>
+    <input id="photoInput" type="file" accept="image/*" multiple onchange="showSelectedFiles('photoInput','photoFileNames')">
+  </div>
+  <div id="photoFileNames" style="margin-bottom:12px;font-size:13px;color:var(--text2);"></div>
+  <button class="primary" onclick="uploadFiles('photoInput','photos')">Upload Photos</button>
+  <div id="photosList"></div>
+</section>
+
+<section id="bookmarks" class="panel">
+  <h2>🔖 Bookmarks</h2>
+  <div class="field"><input id="bookmarkTitle" placeholder="Title"></div>
+  <div class="field"><input id="bookmarkUrl" placeholder="https://example.com"></div>
+  <button class="primary" onclick="saveBookmark()">Save Bookmark</button>
+  <div id="bookmarksList"></div>
+</section>
+
+<section id="notes" class="panel">
+  <h2>📝 Notes</h2>
+  <div class="field"><input id="noteTitle" placeholder="Title"></div>
+  <div class="field"><textarea id="noteBody" placeholder="Write your note..."></textarea></div>
+  <button class="primary" onclick="saveNote()">Save Note</button>
+  <div id="notesList"></div>
+</section>
+
+<section id="links" class="panel">
+  <h2>🔗 Links</h2>
+  <div class="field"><input id="linkTitle" placeholder="Title"></div>
+  <div class="field"><input id="linkUrl" placeholder="https://example.com"></div>
+  <button class="primary" onclick="saveLink()">Save Link</button>
+  <div id="linksList"></div>
+</section>
+
+<section id="files" class="panel">
+  <h2>📁 Files</h2>
+  <div class="filebox" onclick="document.getElementById('fileInput').click()">
+    <div class="filebox-label">📁 Click to choose files</div>
+    <input id="fileInput" type="file" multiple onchange="showSelectedFiles('fileInput','fileFileNames')">
+  </div>
+  <div id="fileFileNames" style="margin-bottom:12px;font-size:13px;color:var(--text2);"></div>
+  <button class="primary" onclick="uploadFiles('fileInput','files')">Upload Files</button>
+  <div id="filesList"></div>
+</section>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const GOOGLE_CLIENT_ID = '703347850795-5qf6vc6nkf4jlip1ojlf0hrr36lm409e.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+
+let accessToken = localStorage.getItem('box_access_token') || '';
+let API_URL = '';
+let currentTab = "photos";
+
+function changeTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}
+
+const savedTheme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+document.getElementById('themeSelect').value = savedTheme;
+
+function checkLoginStatus(){
+  if(accessToken){
+    document.getElementById('connectSection').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    loadItems(currentTab);
+  } else {
+    document.getElementById('connectSection').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
+  }
+}
+
+function connectGoogleDrive(){
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: GOOGLE_SCOPES,
+    callback: async (response) => {
+      if(response.access_token){
+        accessToken = response.access_token;
+        localStorage.setItem('box_access_token', accessToken);
+        checkLoginStatus();
+      }
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+
+(async function loadConfig(){
+  const params = new URLSearchParams(window.location.search);
+  const user = params.get('user') || 'test';
+  try{
+    const script = document.createElement('script');
+    script.src = './' + user + '/config.js';
+    script.onload = () => {
+      API_URL = USER_CONFIG.apiUrl;
+      checkLoginStatus();
+    };
+    document.body.appendChild(script);
+  }catch(e){
+    checkLoginStatus();
+  }
+})();
+
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.onclick=()=>{
+    currentTab=btn.dataset.tab;
+    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById(currentTab).classList.add("active");
+    loadItems(currentTab);
+  };
+});
+
+function setStatus(t){document.getElementById("status").textContent=t}
+
+function showSelectedFiles(inputId, displayId){
+  const input = document.getElementById(inputId);
+  const display = document.getElementById(displayId);
+  if(input.files.length === 0){display.innerHTML = '';return;}
+  let filesHtml = '';
+  for(let i = 0; i < input.files.length; i++){
+    const file = input.files[i];
+    const sizeKB = (file.size / 1024).toFixed(1);
+    filesHtml += '<div style="padding:6px 0;border-bottom:1px solid var(--border);">📄 ' + file.name + ' <span style="color:var(--text3);font-size:11px;">(' + sizeKB + ' KB)</span></div>';
+  }
+  display.innerHTML = filesHtml;
+}
+
+async function post(action,data={}){
+  const body=new URLSearchParams({action,...data});
+  const r=await fetch(API_URL,{method:"POST",body});
+  return await r.json();
+}
+
+function formatPremiumDate(dateStr){
+  const d = new Date(dateStr);
+  const day = d.getDate();
+  const month = d.toLocaleString('en-US', {month:'long'});
+  const year = d.getFullYear();
+  const weekday = d.toLocaleString('en-US', {weekday:'long'});
+  let suffix = 'th';
+  if(day === 1 || day === 21 || day === 31) suffix = 'st';
+  else if(day === 2 || day === 22) suffix = 'nd';
+  else if(day === 3 || day === 23) suffix = 'rd';
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+  return `${day}${suffix} ${month} ${year}, ${weekday}, ${hours12}:${minutesStr} ${ampm}`;
+}
+
+function showUploadProgress(show, percent = 0){
+  const container = document.getElementById('uploadProgressContainer');
+  const bar = document.getElementById('uploadProgressBar');
+  const text = document.getElementById('uploadProgressText');
+  if(show){
+    container.classList.add('active');
+    bar.style.width = percent + '%';
+    text.classList.add('active');
+    text.textContent = 'Uploading... ' + Math.round(percent) + '%';
+  } else {
+    container.classList.remove('active');
+    bar.style.width = '0%';
+    text.classList.remove('active');
+  }
+}
+
+async function loadItems(type){
+  if(!accessToken) return;
+  setStatus("Loading...");
+  if(type === 'files' || type === 'photos'){
+    google.script.run
+      .withSuccessHandler(result => {
+        if(result.success){
+          render(type, result.files || []);
+          setStatus("Ready");
+        } else { setStatus("Error"); }
+      })
+      .listUserDriveFiles(accessToken);
+    return;
+  }
+  if(!API_URL) return;
+  try{
+    const callback="cb_"+Date.now();
+    const script=document.createElement("script");
+    window[callback]=(result)=>{
+      delete window[callback];
+      script.remove();
+      render(type,result.items||[]);
+      setStatus("Ready");
+    };
+    script.src=API_URL+"?action=list&type="+encodeURIComponent(type)+"&callback="+callback;
+    document.body.appendChild(script);
+  }catch(e){setStatus("Load error")}
+}
+
+function render(type,items){
+  const el=document.getElementById(type+"List");
+  if(!items.length){el.innerHTML='<div class="empty">Nothing saved yet.</div>';return}
+  el.innerHTML=items.map((x, index)=>{
+    const dateStr = x.date || x.uploadedDate || '';
+    const formattedDate = dateStr ? formatPremiumDate(dateStr) : '';
+    if(x.kind==="note"){
+      return `<div class="item"><div class="item-title">${esc(x.title)}</div><div>${esc(x.body)}</div><div class="item-meta">${formattedDate}</div></div>`;
+    }
+    if(x.url){
+      return `<div class="item"><div class="item-title">${esc(x.title)}</div><a href="${escAttr(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a><div class="item-meta">${formattedDate}</div></div>`;
+    }
+    return `<div class="item" data-file-id="${esc(x.id || '')}">
+      <div class="item-title">${esc(x.name || "File")}</div>
+      ${x.fileUrl ? `<a href="${escAttr(x.fileUrl)}" target="_blank">Open file</a>` : ''}
+      <div class="item-meta">${formattedDate}</div>
+      <div class="item-actions">
+        <button class="item-action-btn" onclick="renameItem('${type}', ${index})">✏️ Rename</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function renameItem(type, index){
+  if(!accessToken){alert("Please connect Google Drive first.");return;}
+  const items = document.querySelectorAll('#' + type + 'List .item');
+  if(!items[index]){alert('File not found');return;}
+  const item = items[index];
+  const fileId = item.getAttribute('data-file-id') || '';
+  const titleEl = item.querySelector('.item-title');
+  const currentName = titleEl ? titleEl.textContent.trim() : '';
+  if(!currentName){alert('Cannot read file name');return;}
+  const baseName = currentName.replace(/\.[^.]+$/, '');
+  const extension = currentName.includes('.') ? currentName.split('.').pop() : '';
+  const newName = prompt('Enter new name:', baseName);
+  if(!newName || !newName.trim()) return;
+  const finalName = extension ? newName.trim() + '.' + extension : newName.trim();
+  setStatus("Renaming...");
+  google.script.run
+    .withSuccessHandler(result => {
+      if(result.success){setStatus("Renamed!");loadItems(type);}
+      else {setStatus("Failed");alert("Rename failed: " + (result.error || 'unknown'));}
+    })
+    .withFailureHandler(error => {setStatus("Error");alert("Error: " + error.message);})
+    .renameFileInDrive(fileId, finalName, accessToken);
+}
+
+async function saveBookmark(){
+  const title=document.getElementById("bookmarkTitle").value.trim();
+  const url=document.getElementById("bookmarkUrl").value.trim();
+  if(!title||!url)return alert("Enter title and URL.");
+  setStatus("Saving...");
+  try{await post("save",{type:"bookmarks",title,url});document.getElementById("bookmarkTitle").value="";document.getElementById("bookmarkUrl").value="";await loadItems("bookmarks");}
+  catch(e){setStatus("Save error")}
+}
+
+async function saveLink(){
+  const title=document.getElementById("linkTitle").value.trim();
+  const url=document.getElementById("linkUrl").value.trim();
+  if(!title||!url)return alert("Enter title and URL.");
+  setStatus("Saving...");
+  try{await post("save",{type:"links",title,url});document.getElementById("linkTitle").value="";document.getElementById("linkUrl").value="";await loadItems("links");}
+  catch(e){setStatus("Save error")}
+}
+
+async function saveNote(){
+  const title=document.getElementById("noteTitle").value.trim();
+  const body=document.getElementById("noteBody").value.trim();
+  if(!title||!body)return alert("Enter title and note.");
+  setStatus("Saving...");
+  try{await post("save",{type:"notes",title,body});document.getElementById("noteTitle").value="";document.getElementById("noteBody").value="";await loadItems("notes");}
+  catch(e){setStatus("Save error")}
+}
+
+async function uploadFiles(inputId,type){
+  if(!accessToken){alert("Please connect Google Drive first.");return;}
+  const files=[...document.getElementById(inputId).files];
+  if(!files.length)return alert("Choose a file first.");
+  const totalFiles = files.length;
+  let completedFiles = 0;
+  for(const file of files){
+    if(file.size > 20*1024*1024){alert(file.name+" is over the 20 MB per-file limit.");continue;}
+    showUploadProgress(true, (completedFiles / totalFiles) * 100);
+    setStatus("Uploading "+file.name+"...");
+    const base64 = await toBase64(file);
+    try{
+      await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .uploadFileToUserDrive(file.name, file.type || "application/octet-stream", base64, accessToken);
+      });
+    }catch(e){alert("Upload failed: "+file.name);}
+    completedFiles++;
+    showUploadProgress(true, (completedFiles / totalFiles) * 100);
+  }
+  showUploadProgress(false);
+  document.getElementById(inputId).value="";
+  await loadItems(type);
+  setStatus("Ready");
+}
+
+function toBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(String(r.result).split(",")[1]);
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escAttr(s){return esc(s)}
+</script>
+</body>
+</html>
