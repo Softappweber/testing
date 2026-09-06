@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✦ Notes — beautiful & simple</title>
+  <style>
+    :root {
+      --bg: #faf8f6;
+      --card: #ffffff;
+      --text: #1e1b1e;
+      --muted: #8b8086;
+      --accent: #3d3a3c;
+      --border: #ede8ea;
+      --shadow: 0 8px 24px rgba(0,0,0,0.04);
+      --radius: 24px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 0.3rem;
+    }
+
+    .create-section {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 3rem;
+    }
+
+    .create-section input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      background: var(--card);
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .create-section input:focus {
+      border-color: #c4b8bd;
+      box-shadow: 0 0 0 4px rgba(0,0,0,0.04);
+    }
+
+    .create-section button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .create-section button:hover {
+      background: #2a2729;
+      transform: translateY(-1px);
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .note-item {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1.8rem 2rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: 0.2s;
+    }
+
+    .note-item:hover {
+      box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+    }
+
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.8rem;
+    }
+
+    .note-topic {
+      font-size: 1.3rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    .note-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    .note-content {
+      color: #4a4548;
+      white-space: pre-wrap;
+      margin-bottom: 1.2rem;
+      font-size: 0.95rem;
+    }
+
+    .note-edit {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .note-edit textarea {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      background: #fcfbfb;
+      outline: none;
+      resize: vertical;
+      font-family: inherit;
+      min-height: 60px;
+    }
+
+    .note-edit textarea:focus {
+      border-color: #c4b8bd;
+      background: white;
+    }
+
+    .note-edit button {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .note-edit button:hover {
+      background: #f5f0f2;
+      border-color: #cfc4c9;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 4rem 2rem;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      .create-section {
+        flex-direction: column;
+      }
+      .create-section button {
+        width: 100%;
+      }
+      .note-item {
+        padding: 1.4rem;
+      }
+      .note-header {
+        flex-direction: column;
+        gap: 4px;
+      }
+      .note-meta {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✦ Notes</h1>
+      <div class="subtitle">Create topics · Edit anytime · Everything is saved</div>
+    </header>
+
+    <div class="create-section">
+      <input type="text" id="topicInput" placeholder="Enter topic name..." autofocus>
+      <button id="createBtn">+ Create</button>
+    </div>
+
+    <div id="notesList" class="notes-list"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'lightweight_notes_v1';
+
+    function loadNotes() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveNotes(notes) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + 
+             ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    }
+
+    function renderNotes(notes) {
+      const container = document.getElementById('notesList');
+      if (!notes.length) {
+        container.innerHTML = '<div class="empty">No topics yet — create your first note above</div>';
+        return;
+      }
+
+      const sorted = [...notes].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      container.innerHTML = sorted.map(note => `
+        <div class="note-item" data-id="${note.id}">
+          <div class="note-header">
+            <div class="note-topic">${escapeHtml(note.topic)}</div>
+            <div class="note-meta">
+              <div>Created: ${formatDate(note.createdAt)}</div>
+              <div>Updated: ${formatDate(note.updatedAt)}</div>
+            </div>
+          </div>
+          <div class="note-content">${escapeHtml(note.content || '')}</div>
+          <div class="note-edit">
+            <textarea placeholder="Update this note...">${escapeHtml(note.content || '')}</textarea>
+            <button>Update</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Attach update handlers
+      container.querySelectorAll('.note-item').forEach(item => {
+        const id = item.dataset.id;
+        const textarea = item.querySelector('textarea');
+        const button = item.querySelector('button');
+
+        button.addEventListener('click', () => {
+          const currentNotes = loadNotes();
+          const index = currentNotes.findIndex(n => n.id === id);
+          if (index !== -1) {
+            currentNotes[index].content = textarea.value;
+            currentNotes[index].updatedAt = new Date().toISOString();
+            saveNotes(currentNotes);
+            renderNotes(currentNotes);
+          }
+        });
+
+        textarea.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            button.click();
+          }
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function createNewTopic() {
+      const input = document.getElementById('topicInput');
+      const topic = input.value.trim();
+      if (!topic) return;
+
+      const notes = loadNotes();
+      notes.push({
+        id: generateId(),
+        topic,
+        content: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      saveNotes(notes);
+      input.value = '';
+      renderNotes(notes);
+      input.focus();
+    }
+
+    // Initial setup
+    let notes = loadNotes();
+    
+    // Add sample notes on first visit
+    if (!notes.length && !localStorage.getItem(STORAGE_KEY)) {
+      notes = [
+        {
+          id: generateId(),
+          topic: 'Welcome to Notes',
+          content: 'This is your first note. Edit it by changing the text below and clicking Update.',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: generateId(),
+          topic: 'Quick Tips',
+          content: '• Create new topics with the input above\n• Update any note anytime\n• All changes are saved automatically\n• Use Ctrl+Enter for quick update',
+          createdAt: new Date(Date.now() - 300000).toISOString(),
+          updatedAt: new Date(Date.now() - 300000).toISOString()
+        }
+      ];
+      saveNotes(notes);
+    }
+
+    renderNotes(notes);
+
+    document.getElementById('createBtn').addEventListener('click', createNewTopic);
+    document.getElementById('topicInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') createNewTopic();
+    });
+
+    // Sync across tabs
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY) {
+        renderNotes(loadNotes());
+      }
+    });
+  </script>
+</body>
+</html>
