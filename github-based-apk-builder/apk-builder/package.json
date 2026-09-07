@@ -1,0 +1,19 @@
+{
+  "name": "apk-builder",
+  "version": "1.0.0",
+  "description": "Self-hosted APK Builder with Node.js backend",
+  "main": "server/build.js",
+  "scripts": {
+    "start": "node server/build.js",
+    "build": "node server/build.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "archiver": "^5.3.1",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

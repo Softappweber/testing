@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My APK Builder - Self Hosted</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background: var(--bg);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-btn:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .btn-build {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+
+        .btn-build:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-build:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: var(--border);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .log-box {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 My APK Builder</h1>
+            <p style="color: var(--text-secondary); margin-top: 10px;">Self-Hosted • No Ads • Free Forever</p>
+        </header>
+
+        <div class="card">
+            <div class="form-group">
+                <label>App Name</label>
+                <input type="text" id="appName" value="My App" placeholder="Enter app name">
+            </div>
+
+            <div class="form-group">
+                <label>Package Name</label>
+                <input type="text" id="packageName" value="com.myapp.app" placeholder="com.example.app">
+            </div>
+
+            <div class="form-group">
+                <label>Version</label>
+                <input type="text" id="version" value="1.0.0" placeholder="1.0.0">
+            </div>
+
+            <label>Upload Your Files</label>
+            <div class="upload-grid">
+                <div class="upload-btn" id="filesBtn">
+                    <div class="upload-icon">📄</div>
+                    <h3>Files</h3>
+                    <input type="file" id="fileInput" multiple style="display:none">
+                </div>
+                <div class="upload-btn" id="folderBtn">
+                    <div class="upload-icon">📁</div>
+                    <h3>Folder</h3>
+                    <input type="file" id="folderInput" webkitdirectory style="display:none">
+                </div>
+                <div class="upload-btn" id="zipBtn">
+                    <div class="upload-icon">🗜️</div>
+                    <h3>ZIP</h3>
+                    <input type="file" id="zipInput" accept=".zip" style="display:none">
+                </div>
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <button class="btn btn-build" id="buildBtn" disabled>🔨 Build APK</button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="log-box" id="logBox"></div>
+    </div>
+
+    <script>
+        let files = [];
+
+        document.getElementById('filesBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('folderBtn').addEventListener('click', () => {
+            document.getElementById('folderInput').click();
+        });
+
+        document.getElementById('zipBtn').addEventListener('click', () => {
+            document.getElementById('zipInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            addFiles(e.target.files);
+        });
+
+        document.getElementById('folderInput').addEventListener('change', (e) => {
+            addFiles(e.target.files);
+        });
+
+        function addFiles(newFiles) {
+            for (let file of newFiles) {
+                if (!files.find(f => f.name === file.name)) {
+                    files.push(file);
+                }
+            }
+            displayFiles();
+        }
+
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            if (files.length === 0) {
+                fileList.innerHTML = '';
+                document.getElementById('buildBtn').disabled = true;
+                return;
+            }
+            
+            fileList.innerHTML = files.map((file, i) => `
+                <div class="file-item">
+                    <span>📄 ${file.name}</span>
+                    <span style="color: var(--text-secondary)">${(file.size/1024).toFixed(1)} KB</span>
+                    <button onclick="removeFile(${i})" style="background:none;border:none;color:red;cursor:pointer">✕</button>
+                </div>
+            `).join('');
+            
+            const hasIndex = files.some(f => f.name === 'index.html');
+            document.getElementById('buildBtn').disabled = !hasIndex;
+        }
+
+        window.removeFile = function(index) {
+            files.splice(index, 1);
+            displayFiles();
+        };
+
+        function addLog(msg) {
+            const logBox = document.getElementById('logBox');
+            logBox.style.display = 'block';
+            logBox.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        document.getElementById('buildBtn').addEventListener('click', async () => {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('appName', document.getElementById('appName').value);
+            formData.append('packageName', document.getElementById('packageName').value);
+            formData.append('version', document.getElementById('version').value);
+            
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            addLog('Uploading files...');
+            
+            try {
+                const response = await fetch('/build', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Build failed');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'app.apk';
+                a.click();
+                
+                addLog('✅ APK downloaded!');
+                progressFill.style.width = '100%';
+                
+            } catch (error) {
+                addLog('❌ Error: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
