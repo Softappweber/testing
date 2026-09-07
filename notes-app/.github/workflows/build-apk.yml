@@ -1,4 +1,4 @@
-name: Build Notely APK Only
+name: Build Notely APK
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ jobs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '20'
     
     - name: Setup Java
       uses: actions/setup-java@v4
@@ -31,25 +31,20 @@ jobs:
         cd app
         cordova platform add android
     
-    - name: Copy ONLY notes-app files
+    - name: Copy Files
       run: |
-        cd notes-app
-        cp index.html ../app/www/
-        cp manifest.json ../app/www/
-        cp service-worker.js ../app/www/
-        cp icon-192.png ../app/www/
-        cp icon-512.png ../app/www/
-        cd ..
-        echo "Files copied:"
+        cp notes-app/index.html app/www/index.html
+        cp notes-app/manifest.json app/www/manifest.json 2>/dev/null || echo "no manifest"
+        cp notes-app/service-worker.js app/www/service-worker.js 2>/dev/null || echo "no sw"
         ls -la app/www/
     
     - name: Build APK
       run: |
         cd app
-        cordova build android --debug
+        cordova build android
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: NOTELY-APK-ONLY
+        name: NOTELY-APK
         path: app/platforms/android/app/build/outputs/apk/debug/*.apk
