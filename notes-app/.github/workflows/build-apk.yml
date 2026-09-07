@@ -24,14 +24,6 @@ jobs:
     - name: Install Cordova
       run: |
         npm install -g cordova
-        cordova --version
-    
-    - name: Check Files
-      run: |
-        echo "Current directory:"
-        pwd
-        echo "Files in notes-app:"
-        ls -la notes-app/ 2>/dev/null || echo "notes-app folder not found"
     
     - name: Create Project
       run: |
@@ -39,15 +31,14 @@ jobs:
         cd app
         cordova platform add android
     
-    - name: Copy Files from notes-app
+    - name: Copy Files from notes-app ONLY
       run: |
-        cd notes-app
-        cp index.html ../app/www/ 2>/dev/null || echo "index.html not found"
-        cp manifest.json ../app/www/ 2>/dev/null || echo "manifest not found"
-        cp service-worker.js ../app/www/ 2>/dev/null || echo "sw not found"
-        cp icon-192.png ../app/www/ 2>/dev/null || echo "icon192 not found"
-        cp icon-512.png ../app/www/ 2>/dev/null || echo "icon512 not found"
-        cd ..
+        echo "Copying from notes-app folder..."
+        cp notes-app/index.html app/www/
+        cp notes-app/manifest.json app/www/
+        cp notes-app/service-worker.js app/www/
+        cp notes-app/icon-192.png app/www/ 2>/dev/null || echo "icon192 missing"
+        cp notes-app/icon-512.png app/www/ 2>/dev/null || echo "icon512 missing"
         echo "Files in app/www:"
         ls -la app/www/
     
