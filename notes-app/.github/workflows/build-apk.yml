@@ -26,18 +26,29 @@ jobs:
         npm install -g cordova
         cordova --version
     
+    - name: Check Files
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Files in notes-app:"
+        ls -la notes-app/ 2>/dev/null || echo "notes-app folder not found"
+    
     - name: Create Project
       run: |
         cordova create app com.notely.app "Notely"
         cd app
         cordova platform add android
     
-    - name: Copy Files
+    - name: Copy Files from notes-app
       run: |
-        cp index.html app/www/ 2>/dev/null || echo "index.html not found"
-        cp manifest.json app/www/ 2>/dev/null || echo "manifest not found"
-        cp service-worker.js app/www/ 2>/dev/null || echo "sw not found"
-        cp *.png app/www/ 2>/dev/null || echo "no png"
+        cd notes-app
+        cp index.html ../app/www/ 2>/dev/null || echo "index.html not found"
+        cp manifest.json ../app/www/ 2>/dev/null || echo "manifest not found"
+        cp service-worker.js ../app/www/ 2>/dev/null || echo "sw not found"
+        cp icon-192.png ../app/www/ 2>/dev/null || echo "icon192 not found"
+        cp icon-512.png ../app/www/ 2>/dev/null || echo "icon512 not found"
+        cd ..
+        echo "Files in app/www:"
         ls -la app/www/
     
     - name: Build APK
