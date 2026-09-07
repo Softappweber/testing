@@ -1,4 +1,4 @@
-name: Build Notely APK
+name: Build Notely APK Only
 
 on:
   workflow_dispatch:
@@ -31,15 +31,16 @@ jobs:
         cd app
         cordova platform add android
     
-    - name: Copy Files from notes-app ONLY
+    - name: Copy ONLY notes-app files
       run: |
-        echo "Copying from notes-app folder..."
-        cp notes-app/index.html app/www/
-        cp notes-app/manifest.json app/www/
-        cp notes-app/service-worker.js app/www/
-        cp notes-app/icon-192.png app/www/ 2>/dev/null || echo "icon192 missing"
-        cp notes-app/icon-512.png app/www/ 2>/dev/null || echo "icon512 missing"
-        echo "Files in app/www:"
+        cd notes-app
+        cp index.html ../app/www/
+        cp manifest.json ../app/www/
+        cp service-worker.js ../app/www/
+        cp icon-192.png ../app/www/
+        cp icon-512.png ../app/www/
+        cd ..
+        echo "Files copied:"
         ls -la app/www/
     
     - name: Build APK
@@ -50,6 +51,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: NOTELY-APK
+        name: NOTELY-APK-ONLY
         path: app/platforms/android/app/build/outputs/apk/debug/*.apk
-        if-no-files-found: error
