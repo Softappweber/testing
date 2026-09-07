@@ -46,17 +46,10 @@ jobs:
     - name: Build APK
       run: |
         cd notely
-        cordova build android
-    
-    - name: Check APK file
-      run: |
-        find . -name "*.apk" -type f
-        ls -la notely/platforms/android/app/build/outputs/apk/debug/
+        cordova build android --debug
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: Notely-APK
-        path: |
-          **/*.apk
-        if-no-files-found: warn
+        path: notely/platforms/android/app/build/outputs/apk/debug/app-debug.apk
