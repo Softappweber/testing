@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notely — Professional Notes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-hover: #f1f5f9;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: all var(--transition);
+    }
+
+    .app-container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 30px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-size: 1.2rem;
+    }
+
+    .theme-toggle:hover {
+      background: var(--surface-hover);
+      transform: rotate(15deg);
+    }
+
+    /* Composer */
+    .composer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .composer-input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 1rem;
+      padding: 10px 0;
+      outline: none;
+      color: var(--text);
+      font-family: inherit;
+      resize: none;
+    }
+
+    .composer-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .composer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .char-count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .post-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-size: 0.9rem;
+    }
+
+    .post-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .post-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Feed */
+    .feed {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .note-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: all var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .note-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .note-header {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .note-info {
+      flex: 1;
+    }
+
+    .note-topic {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .note-timestamp {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .timestamp-detail {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .timestamp-icon {
+      font-size: 0.9rem;
+    }
+
+    .timestamp-full {
+      font-weight: 500;
+    }
+
+    .timestamp-ago {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      margin-left: 4px;
+    }
+
+    .note-content {
+      color: var(--text);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .note-actions {
+      display: flex;
+      gap: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .action-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .edit-area {
+      margin-top: 15px;
+    }
+
+    .edit-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: all var(--transition);
+    }
+
+    .edit-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: flex-end;
+    }
+
+    .save-btn, .cancel-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-weight: 500;
+      font-family: inherit;
+    }
+
+    .save-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+    }
+
+    .save-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .cancel-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .cancel-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+    }
+
+    .empty-text {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .app-container {
+        padding: 10px;
+      }
+      .app-header {
+        padding: 15px 0;
+      }
+      .composer {
+        padding: 15px;
+      }
+      .note-card {
+        padding: 15px;
+      }
+      .avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">Notely</div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </header>
+
+    <!-- Composer -->
+    <div class="composer">
+      <textarea class="composer-input" id="composerInput" placeholder="What's on your mind? Create a new topic..." rows="2"></textarea>
+      <div class="composer-actions">
+        <span class="char-count" id="charCount">0 / 280</span>
+        <button class="post-btn" id="postBtn">Post Note</button>
+      </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <script>
+    // Storage configuration with migration support
+    const STORAGE_KEYS = ['notely_notes_v3', 'notely_notes_v2', 'lightweight_notes_v1', 'beautiful_notes_data_v1', 'notes_data'];
+    const PRIMARY_KEY = 'notely_notes_v3';
+    const THEME_KEY = 'notely_theme';
+
+    // Load all notes from multiple storage keys
+    function loadAllNotes() {
+      let allNotes = [];
+      const seenIds = new Set();
+
+      STORAGE_KEYS.forEach(key => {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(note => {
+                if (note.id && !seenIds.has(note.id)) {
+                  seenIds.add(note.id);
+                  allNotes.push(note);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to parse notes from ${key}`);
+        }
+      });
+
+      return allNotes;
+    }
+
+    // Save notes to primary storage
+    function saveNotes(notes) {
+      localStorage.setItem(PRIMARY_KEY, JSON.stringify(notes));
+    }
+
+    // Theme management
+    function loadTheme() {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+      }
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem(THEME_KEY, newTheme);
+      updateThemeIcon(newTheme);
+    }
+
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('themeIcon');
+      icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Format complete timestamp with all details
+    function formatFullTimestamp(isoString) {
+      const date = new Date(isoString);
+      const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      return date.toLocaleString('en-US', options);
+    }
+
+    // Format timestamp for display (created/updated)
+    function formatDisplayTimestamp(isoString) {
+      const date = new Date(isoString);
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      const dayName = days[date.getDay()];
+      const monthName = months[date.getMonth()];
+      const day = date.getDate();
+      const year = date.getFullYear();
+      
+      let hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // Convert 0 to 12
+      
+      return `${dayName}, ${monthName} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
+    }
+
+    // Get time ago
+    function timeAgo(isoString) {
+      const seconds = Math.floor((new Date() - new Date(isoString)) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+      const weeks = Math.floor(days / 7);
+      if (weeks < 4) return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+      const months = Math.floor(days / 30);
+      if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+      const years = Math.floor(days / 365);
+      return `${years} year${years > 1 ? 's' : ''} ago`;
+    }
+
+    // Generate unique ID
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    }
+
+    // Escape HTML
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Get initials for avatar
+    function getInitials(topic) {
+      return topic.substring(0, 2).toUpperCase();
+    }
+
+    // Render all notes
+    function renderNotes(notes) {
+      const feed = document.getElementById('feed');
+      
+      if (!notes || notes.length === 0) {
+        feed.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <div class="empty-text">No notes yet. Create your first note above!</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort by most recently updated
+      const sortedNotes = [...notes].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      feed.innerHTML = sortedNotes.map(note => `
+        <div class="note-card" data-note-id="${note.id}">
+          <div class="note-header">
+            <div class="avatar">${escapeHtml(getInitials(note.topic || 'N'))}</div>
+            <div class="note-info">
+              <div class="note-topic">${escapeHtml(note.topic || 'Untitled')}</div>
+              <div class="note-timestamp">
+                <div class="timestamp-detail">
+                  <span class="timestamp-icon">📅</span>
+                  <span class="timestamp-full">Created: ${escapeHtml(formatDisplayTimestamp(note.createdAt))}</span>
+                  <span class="timestamp-ago">(${escapeHtml(timeAgo(note.createdAt))})</span>
+                </div>
+                <div class="timestamp-detail">
+                  <span class="timestamp-icon">🔄</span>
+                  <span class="timestamp-full">Updated: ${escapeHtml(formatDisplayTimestamp(note.updatedAt))}</span>
+                  <span class="timestamp-ago">(${escapeHtml(timeAgo(note.updatedAt))})</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="note-content">${escapeHtml(note.content || '')}</div>
+          <div class="note-actions">
+            <button class="action-btn" onclick="startEdit('${note.id}')">
+              ✏️ Edit
+            </button>
+            <button class="action-btn" onclick="deleteNote('${note.id}')">
+              🗑️ Delete
+            </button>
+          </div>
+          <div class="edit-area" id="editArea-${note.id}" style="display: none;">
+            <textarea class="edit-input" id="editInput-${note.id}">${escapeHtml(note.content || '')}</textarea>
+            <div class="edit-actions">
+              <button class="cancel-btn" onclick="cancelEdit('${note.id}')">Cancel</button>
+              <button class="save-btn" onclick="saveEdit('${note.id}')">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Start editing a note
+    window.startEdit = function(noteId) {
+      const editArea = document.getElementById(`editArea-${noteId}`);
+      const noteContent = document.querySelector(`[data-note-id="${noteId}"] .note-content`);
+      const noteActions = document.querySelector(`[data-note-id="${noteId}"] .note-actions`);
+      
+      if (editArea && noteContent && noteActions) {
+        editArea.style.display = 'block';
+        noteContent.style.display = 'none';
+        noteActions.style.display = 'none';
+        
+        const editInput = document.getElementById(`editInput-${noteId}`);
+        editInput.focus();
+        editInput.setSelectionRange(editInput.value.length, editInput.value.length);
+      }
+    };
+
+    // Cancel editing
+    window.cancelEdit = function(noteId) {
+      const editArea = document.getElementById(`editArea-${noteId}`);
+      const noteContent = document.querySelector(`[data-note-id="${noteId}"] .note-content`);
+      const noteActions = document.querySelector(`[data-note-id="${noteId}"] .note-actions`);
+      
+      if (editArea && noteContent && noteActions) {
+        editArea.style.display = 'none';
+        noteContent.style.display = 'block';
+        noteActions.style.display = 'flex';
+      }
+    };
+
+    // Save edited note
+    window.saveEdit = function(noteId) {
+      const editInput = document.getElementById(`editInput-${noteId}`);
+      const newContent = editInput.value;
+      
+      const notes = loadAllNotes();
+      const noteIndex = notes.findIndex(n => n.id === noteId);
+      
+      if (noteIndex !== -1) {
+        notes[noteIndex].content = newContent;
+        notes[noteIndex].updatedAt = new Date().toISOString();
+        saveNotes(notes);
+        renderNotes(notes);
+      }
+    };
+
+    // Delete note
+    window.deleteNote = function(noteId) {
+      if (confirm('Are you sure you want to delete this note?')) {
+        const notes = loadAllNotes();
+        const filteredNotes = notes.filter(n => n.id !== noteId);
+        saveNotes(filteredNotes);
+        renderNotes(filteredNotes);
+      }
+    };
+
+    // Create new note
+    function createNewNote() {
+      const input = document.getElementById('composerInput');
+      const content = input.value.trim();
+      
+      if (!content) return;
+
+      // Extract topic (first line or first few words)
+      const lines = content.split('\n');
+      let topic = lines[0].substring(0, 50);
+      if (topic.length === 50) topic += '...';
+      
+      const note = {
+        id: generateId(),
+        topic: topic,
+        content: content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const notes = loadAllNotes();
+      notes.push(note);
+      saveNotes(notes);
+      
+      input.value = '';
+      updateCharCount();
+      renderNotes(notes);
+    }
+
+    // Update character count
+    function updateCharCount() {
+      const input = document.getElementById('composerInput');
+      const charCount = document.getElementById('charCount');
+      const length = input.value.length;
+      charCount.textContent = `${length} / 280`;
+      
+      if (length > 280) {
+        charCount.style.color = '#ef4444';
+      } else {
+        charCount.style.color = '';
+      }
+    }
+
+    // Initialize app
+    function init() {
+      // Load theme
+      loadTheme();
+      
+      // Load notes
+      let notes = loadAllNotes();
+      
+      // If no notes, add welcome note
+      if (notes.length === 0) {
+        notes = [{
+          id: generateId(),
+          topic: 'Welcome to Notely',
+          content: 'This is your professional note-taking space. Create new notes above and edit them anytime.',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }];
+        saveNotes(notes);
+      }
+      
+      renderNotes(notes);
+
+      // Event listeners
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+      document.getElementById('postBtn').addEventListener('click', createNewNote);
+      
+      document.getElementById('composerInput').addEventListener('input', updateCharCount);
+      
+      // Keyboard shortcuts
+      document.getElementById('composerInput').addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          createNewNote();
+        }
+      });
+
+      // Sync across tabs
+      window.addEventListener('storage', (e) => {
+        if (STORAGE_KEYS.includes(e.key)) {
+          renderNotes(loadAllNotes());
+        }
+      });
+    }
+
+    // Start app
+    init();
+  </script>
+</body>
+</html>
