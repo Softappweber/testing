@@ -1,0 +1,55 @@
+name: Build Notely APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+    
+    - name: Install Cordova
+      run: |
+        npm install -g cordova
+        cordova --version
+    
+    - name: Create Cordova Project
+      run: |
+        cordova create notely com.notely.app "Notely"
+        cd notely
+        cordova platform add android
+    
+    - name: Copy Website Files
+      run: |
+        cp -r www/* notely/www/
+        cp config.xml notely/config.xml
+    
+    - name: Build APK
+      run: |
+        cd notely
+        cordova build android --release
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: Notely-APK
+        path: notely/platforms/android/app/build/outputs/apk/release/*.apk
