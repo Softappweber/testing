@@ -33,9 +33,11 @@ jobs:
     
     - name: Copy Files
       run: |
-        cp notes-app/index.html app/www/index.html
-        cp notes-app/manifest.json app/www/manifest.json 2>/dev/null || echo "no manifest"
-        cp notes-app/service-worker.js app/www/service-worker.js 2>/dev/null || echo "no sw"
+        cp index.html app/www/index.html
+        cp manifest.json app/www/manifest.json 2>/dev/null || echo "no manifest"
+        cp service-worker.js app/www/service-worker.js 2>/dev/null || echo "no sw"
+        cp icon-192.png app/www/icon-192.png 2>/dev/null || echo "no icon"
+        cp icon-512.png app/www/icon-512.png 2>/dev/null || echo "no icon"
         ls -la app/www/
     
     - name: Build APK
