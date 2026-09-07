@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APK Converter - HTML to Android App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .upload-area {
+      border: 3px dashed #667eea;
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover {
+      background: #f8f9ff;
+      border-color: #764ba2;
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .file-list {
+      margin: 20px 0;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .file-name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .file-status {
+      color: #28a745;
+      font-size: 0.9rem;
+    }
+
+    .convert-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .convert-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .progress {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.5s;
+    }
+
+    .download-btn {
+      display: none;
+      width: 100%;
+      padding: 15px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .api-key-section {
+      margin-bottom: 20px;
+    }
+
+    .api-key-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+
+    .info-box h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .info-box ol {
+      padding-left: 20px;
+      color: #555;
+    }
+
+    .info-box li {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 APK Converter</h1>
+    <p class="subtitle">Upload your HTML app files and get Android APK</p>
+
+    <div class="info-box">
+      <h3>📁 Required Files:</h3>
+      <ol>
+        <li>index.html (Your main file)</li>
+        <li>manifest.json (PWA manifest)</li>
+        <li>service-worker.js (Offline support)</li>
+        <li>icon-192.png (192x192 icon)</li>
+        <li>icon-512.png (512x512 icon)</li>
+      </ol>
+    </div>
+
+    <div class="api-key-section">
+      <input type="password" class="api-key-input" id="apiKey" placeholder="Enter your API Key (from PWA2APK or similar service)">
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+      <div class="upload-icon">📁</div>
+      <h3>Click to Upload Files</h3>
+      <p>Or drag and drop here</p>
+      <input type="file" id="fileInput" multiple accept=".html,.json,.js,.png,.jpg,.svg" style="display:none">
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <button class="convert-btn" id="convertBtn" disabled>Convert to APK</button>
+
+    <div class="progress" id="progress">
+      <p>Converting... Please wait</p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <button class="download-btn" id="downloadBtn">Download APK</button>
+  </div>
+
+  <script>
+    let uploadedFiles = [];
+    const requiredFiles = ['index.html', 'manifest.json', 'service-worker.js', 'icon-192.png', 'icon-512.png'];
+
+    // File upload handling
+    document.getElementById('uploadArea').addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    // Drag and drop
+    document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.target.style.background = '#f0f4ff';
+    });
+
+    document.getElementById('uploadArea').addEventListener('dragleave', (e) => {
+      e.target.style.background = 'transparent';
+    });
+
+    document.getElementById('uploadArea').addEventListener('drop', (e) => {
+      e.preventDefault();
+      handleFiles(e.dataTransfer.files);
+    });
+
+    function handleFiles(files) {
+      uploadedFiles = [...files];
+      displayFiles();
+      validateFiles();
+    }
+
+    function displayFiles() {
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = uploadedFiles.map(file => `
+        <div class="file-item">
+          <span class="file-name">📄 ${file.name}</span>
+          <span class="file-status">✓ ${(file.size / 1024).toFixed(1)} KB</span>
+        </div>
+      `).join('');
+    }
+
+    function validateFiles() {
+      const fileNames = uploadedFiles.map(f => f.name);
+      const hasAllRequired = requiredFiles.every(req => 
+        fileNames.some(name => name.includes(req.split('.')[0]))
+      );
+      
+      document.getElementById('convertBtn').disabled = !hasAllRequired;
+      
+      if (!hasAllRequired) {
+        alert('Please upload all required files: index.html, manifest.json, service-worker.js, icon-192.png, icon-512.png');
+      }
+    }
+
+    // Convert button
+    document.getElementById('convertBtn').addEventListener('click', async () => {
+      const apiKey = document.getElementById('apiKey').value;
+      if (!apiKey) {
+        alert('Please enter your API key');
+        return;
+      }
+
+      document.getElementById('progress').style.display = 'block';
+      document.getElementById('convertBtn').disabled = true;
+
+      // Simulate conversion process
+      for (let i = 0; i <= 100; i += 10) {
+        document.getElementById('progressFill').style.width = i + '%';
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Here you would integrate with actual APK conversion API
+      // For demo, create a fake APK file
+      const apkContent = createMockAPK();
+      const blob = new Blob([apkContent], { type: 'application/vnd.android.package-archive' });
+      const url = URL.createObjectURL(blob);
+      
+      document.getElementById('downloadBtn').style.display = 'block';
+      document.getElementById('downloadBtn').onclick = () => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'app.apk';
+        a.click();
+      };
+
+      document.getElementById('progress').style.display = 'none';
+      alert('APK generated successfully! Click download button to get your APK.');
+    });
+
+    function createMockAPK() {
+      // This is a mock function - in real implementation, you'd call an API
+      return 'Mock APK content - Integrate with real API for actual APK';
+    }
+  </script>
+</body>
+</html>
