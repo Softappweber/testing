@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>solods-theater — Cinema Mode for YouTube</title>
+<meta name="description" content="solods-theater — Distraction-free YouTube cinema mode. Ambient lighting, focus mode, night mode, theater modes and more. Pro feature of soloDS Box.">
+<style>
+:root{
+  --bg:#000000;
+  --bg-soft:#0a0a0f;
+  --bg-card:#131318;
+  --border:#23232e;
+  --text:#f5f5f7;
+  --text-dim:#a1a1aa;
+  --text-muted:#6b6b76;
+  --accent:#8b5cf6;
+  --accent-glow:rgba(139,92,246,0.5);
+  --success:#6ee7a8;
+  --danger:#ff7a7a;
+  --warning:#fbbf24;
+  --radius:14px;
+  --radius-lg:20px;
+  --transition:0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Theater Modes */
+[data-theater="movie"]{
+  --ambient-1:#ff4444;
+  --ambient-2:#991111;
+  --bg:#0a0000;
+}
+[data-theater="home"]{
+  --ambient-1:#ffa366;
+  --ambient-2:#cc7722;
+  --bg:#0f0a05;
+}
+[data-theater="neon"]{
+  --ambient-1:#ff00ff;
+  --ambient-2:#00ffff;
+  --bg:#0a0010;
+}
+[data-theater="midnight"]{
+  --ambient-1:#1a1a2e;
+  --ambient-2:#0a0a15;
+  --bg:#000000;
+}
+[data-theater="minimal"]{
+  --ambient-1:#ffffff;
+  --ambient-2:#888888;
+  --bg:#1a1a1a;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--transition);
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* ============ LANDING SCREEN ============ */
+.landing{
+  position:fixed;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;text-align:center;
+  background:radial-gradient(ellipse at center,var(--accent-glow),transparent 70%),var(--bg);
+  transition:opacity var(--transition),visibility var(--transition);
+}
+.landing.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.landing-logo{
+  font-size:80px;margin-bottom:20px;
+  animation:float 4s ease-in-out infinite;
+  filter:drop-shadow(0 20px 40px var(--accent-glow));
+}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-15px) rotate(3deg)}}
+.landing h1{
+  font-size:clamp(32px,5vw,56px);font-weight:900;
+  letter-spacing:-2px;margin-bottom:14px;
+  background:linear-gradient(135deg,#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.landing .sub{
+  font-size:clamp(14px,2vw,18px);color:var(--text-dim);
+  max-width:560px;margin-bottom:36px;line-height:1.6;
+}
+.landing .pro-badge{
+  display:inline-block;padding:6px 16px;margin-bottom:20px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  color:#000;font-size:11px;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;border-radius:100px;
+}
+.url-input-wrap{
+  display:flex;gap:10px;width:100%;max-width:640px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px;
+  transition:all 0.2s;
+}
+.url-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow)}
+.url-input-wrap input{
+  flex:1;padding:14px 16px;font-size:15px;color:var(--text);
+}
+.url-input-wrap input::placeholder{color:var(--text-muted)}
+.url-input-wrap button{
+  padding:14px 28px;background:linear-gradient(135deg,var(--accent),#6366f1);
+  color:#fff;font-weight:700;font-size:14px;border-radius:10px;
+  transition:transform 0.2s;
+}
+.url-input-wrap button:hover{transform:scale(1.03)}
+
+.feature-chips{
+  display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin-top:32px;max-width:680px;
+}
+.chip{
+  background:var(--bg-card);border:1px solid var(--border);
+  padding:8px 14px;border-radius:100px;
+  font-size:12.5px;color:var(--text-dim);
+}
+.chip strong{color:var(--text);font-weight:700}
+
+.recent-videos{
+  margin-top:40px;width:100%;max-width:640px;
+}
+.recent-videos h3{
+  font-size:13px;color:var(--text-muted);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:14px;
+}
+.recent-list{display:flex;flex-direction:column;gap:8px}
+.recent-item{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:all 0.2s;text-align:left;
+}
+.recent-item:hover{border-color:var(--accent);transform:translateX(4px)}
+.recent-item .icon{font-size:20px}
+.recent-item .info{flex:1;min-width:0}
+.recent-item .title{
+  font-size:14px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.recent-item .meta{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+
+/* ============ THEATER SCREEN ============ */
+.theater{
+  position:fixed;inset:0;z-index:50;
+  display:none;flex-direction:column;
+  background:var(--bg);
+  transition:background var(--transition);
+}
+.theater.active{display:flex}
+
+/* Ambient glow layer */
+.ambient-glow{
+  position:absolute;inset:-20%;z-index:0;
+  background:
+    radial-gradient(circle at 30% 40%,var(--ambient-1),transparent 45%),
+    radial-gradient(circle at 70% 60%,var(--ambient-2),transparent 45%);
+  filter:blur(80px);
+  opacity:0.5;
+  transition:all 0.6s ease;
+  animation:ambientPulse 8s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ambientPulse{
+  0%,100%{opacity:0.4;transform:scale(1)}
+  50%{opacity:0.6;transform:scale(1.05)}
+}
+
+/* Vignette overlay */
+.vignette{
+  position:absolute;inset:0;z-index:1;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.7) 100%);
+  pointer-events:none;opacity:1;transition:opacity 0.3s;
+}
+.vignette.off{opacity:0}
+
+/* Night mode filter */
+.night-filter{
+  position:absolute;inset:0;z-index:2;
+  background:rgba(255,147,41,0.08);
+  mix-blend-mode:multiply;
+  pointer-events:none;opacity:0;transition:opacity 0.3s;
+}
+.night-filter.on{opacity:1}
+
+/* Focus mode blur */
+.focus-overlay{
+  position:absolute;inset:0;z-index:3;
+  backdrop-filter:blur(0px);
+  transition:backdrop-filter 0.4s;
+  pointer-events:none;
+}
+.focus-overlay.on{
+  backdrop-filter:blur(8px);
+  -webkit-mask-image:radial-gradient(ellipse 65% 60% at 50% 50%,transparent 60%,black 100%);
+          mask-image:radial-gradient(ellipse 65% 60% at 50% 50%,transparent 60%,black 100%);
+}
+
+/* Film grain */
+.grain{
+  position:absolute;inset:0;z-index:4;
+  pointer-events:none;opacity:0;transition:opacity 0.3s;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+.grain.on{opacity:0.15}
+
+/* ============ TOP BAR ============ */
+.topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;gap:14px;
+  padding:16px 22px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.9),transparent);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.topbar.hidden{opacity:0;transform:translateY(-20px);pointer-events:none}
+.back-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  font-size:14px;font-weight:600;
+  transition:all 0.2s;
+}
+.back-btn:hover{background:rgba(255,255,255,0.15);transform:translateX(-3px)}
+.theater-title{
+  flex:1;font-size:15px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 10px;
+}
+.topbar-actions{display:flex;gap:8px}
+.tb-btn{
+  width:42px;height:42px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;transition:all 0.2s;
+}
+.tb-btn:hover{background:rgba(255,255,255,0.15);border-color:var(--accent);transform:translateY(-2px)}
+.tb-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ============ MAIN VIDEO AREA ============ */
+.video-stage{
+  position:relative;z-index:5;
+  flex:1;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 30px;
+  min-height:0;
+}
+.video-frame{
+  position:relative;
+  width:100%;max-width:1400px;
+  aspect-ratio:16/9;
+  background:#000;
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 30px 80px rgba(0,0,0,0.8),
+    0 0 100px var(--accent-glow);
+  transition:all var(--transition);
+}
+.video-frame.cinema-bars::before,
+.video-frame.cinema-bars::after{
+  content:'';position:absolute;left:0;right:0;height:10%;
+  background:#000;z-index:10;pointer-events:none;
+}
+.video-frame.cinema-bars::before{top:0}
+.video-frame.cinema-bars::after{bottom:0}
+.video-frame iframe{
+  width:100%;height:100%;border:0;display:block;
+}
+
+/* ============ BOTTOM BAR ============ */
+.bottombar{
+  position:relative;z-index:10;
+  padding:20px 30px 26px;
+  background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.bottombar.hidden{opacity:0;transform:translateY(20px);pointer-events:none}
+
+.progress-wrap{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.progress-time{font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums;min-width:45px}
+.progress-bar{
+  flex:1;height:5px;background:rgba(255,255,255,0.1);
+  border-radius:3px;overflow:hidden;cursor:pointer;
+}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--accent),#6366f1);
+  border-radius:3px;width:0%;transition:width 0.1s;
+}
+
+.controls-row{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.ctrl-btn{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;transition:all 0.2s;
+}
+.ctrl-btn:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.ctrl-btn.active{background:var(--accent);border-color:var(--accent)}
+
+.speed-select{
+  padding:10px 16px;border-radius:10px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.1);
+  color:var(--text);font-size:13px;font-weight:600;
+  cursor:pointer;
+}
+.speed-select option{background:#1a1a22;color:#fff}
+
+.controls-spacer{flex:1}
+
+/* ============ THEATER MODE PANEL ============ */
+.settings-panel{
+  position:fixed;top:0;right:0;bottom:0;z-index:60;
+  width:340px;max-width:90vw;
+  background:var(--bg-soft);
+  border-left:1px solid var(--border);
+  padding:24px;
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform var(--transition);
+  box-shadow:-20px 0 60px rgba(0,0,0,0.5);
+}
+.settings-panel.open{transform:translateX(0)}
+.settings-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:22px;
+}
+.settings-title{font-size:18px;font-weight:800}
+.settings-close{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--bg-card);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all 0.2s;
+}
+.settings-close:hover{background:var(--danger);color:#fff}
+
+.setting-group{margin-bottom:26px}
+.setting-label{
+  font-size:11px;font-weight:800;
+  color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:1px;
+  margin-bottom:12px;
+}
+.theater-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
+}
+.theater-option{
+  padding:14px 10px;border-radius:12px;
+  background:var(--bg-card);border:2px solid transparent;
+  text-align:center;cursor:pointer;transition:all 0.2s;
+}
+.theater-option:hover{transform:translateY(-3px)}
+.theater-option.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.theater-option .em{font-size:24px;display:block;margin-bottom:6px}
+.theater-option .nm{font-size:12px;font-weight:700}
+
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0;border-bottom:1px solid var(--border);
+}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{flex:1}
+.toggle-name{font-size:14px;font-weight:600}
+.toggle-desc{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+
+.toggle{
+  width:46px;height:26px;border-radius:13px;
+  background:var(--border);position:relative;
+  cursor:pointer;transition:background 0.2s;flex-shrink:0;
+}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:transform 0.2s;
+}
+.toggle.on{background:var(--accent)}
+.toggle.on::after{transform:translateX(20px)}
+
+/* ============ TOAST ============ */
+.toast-container{
+  position:fixed;bottom:100px;right:24px;z-index:200;
+  display:flex;flex-direction:column;gap:10px;pointer-events:none;
+}
+.toast{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:12px;padding:13px 18px;
+  min-width:260px;font-size:13.5px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  animation:toastIn 0.3s;pointer-events:auto;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--danger)}
+
+/* ============ FLOATING MINI PLAYER ============ */
+.pip-window{
+  position:fixed;bottom:24px;right:24px;z-index:55;
+  width:340px;aspect-ratio:16/9;
+  background:#000;border-radius:14px;
+  border:2px solid var(--accent);
+  box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 40px var(--accent-glow);
+  display:none;overflow:hidden;
+}
+.pip-window.active{display:block}
+.pip-window iframe{width:100%;height:100%;border:0}
+
+/* ============ HINT BAR ============ */
+.hint-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:15;
+  padding:8px 16px;text-align:center;
+  font-size:11px;color:var(--text-muted);
+  background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);
+  transition:opacity 0.3s;
+}
+.hint-bar.hidden{opacity:0}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:768px){
+  .video-stage{padding:0 12px}
+  .video-frame{border-radius:12px}
+  .topbar{padding:12px 14px}
+  .theater-title{display:none}
+  .bottombar{padding:14px 16px 20px}
+  .controls-row{gap:10px}
+  .ctrl-btn{width:38px;height:38px;font-size:15px}
+  .settings-panel{width:100%;max-width:100%}
+  .pip-window{width:240px;bottom:16px;right:16px}
+  .landing h1{font-size:32px}
+  .url-input-wrap{flex-direction:column;padding:6px}
+  .url-input-wrap button{width:100%}
+  .feature-chips{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING SCREEN ============ -->
+<div class="landing" id="landing">
+  <div class="landing-logo">🎬</div>
+  <div class="pro-badge">✨ Pro Feature</div>
+  <h1>solods-theater</h1>
+  <p class="sub">Cinema mode for YouTube. Paste any video URL and watch it like it's a movie theater — distraction-free, with ambient lighting, focus mode, and night mode.</p>
+
+  <div class="url-input-wrap">
+    <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." autocomplete="off" spellcheck="false">
+    <button onclick="startTheater()">🎬 Enter Theater</button>
+  </div>
+
+  <div class="feature-chips">
+    <div class="chip"><strong>🎬</strong> Cinema Mode</div>
+    <div class="chip"><strong>🎯</strong> Distraction-Free</div>
+    <div class="chip"><strong>🌙</strong> Night Mode</div>
+    <div class="chip"><strong>✨</strong> Ambient Light</div>
+    <div class="chip"><strong>🎨</strong> 5 Theater Modes</div>
+    <div class="chip"><strong>⌨️</strong> Shortcuts</div>
+  </div>
+
+  <div class="recent-videos" id="recentWrap" style="display:none">
+    <h3>Recently Watched</h3>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+</div>
+
+<!-- ============ THEATER SCREEN ============ -->
+<div class="theater" id="theater">
+
+  <!-- Ambient glow layers -->
+  <div class="ambient-glow" id="ambientGlow"></div>
+  <div class="vignette" id="vignette"></div>
+  <div class="night-filter" id="nightFilter"></div>
+  <div class="focus-overlay" id="focusOverlay"></div>
+  <div class="grain" id="grain"></div>
+
+  <!-- Top bar -->
+  <div class="topbar" id="topbar">
+    <button class="back-btn" onclick="exitTheater()">
+      ← Back to Box
+    </button>
+    <div class="theater-title" id="theaterTitle">Now Playing</div>
+    <div class="topbar-actions">
+      <button class="tb-btn" id="pipBtn" onclick="togglePiP()" title="Picture-in-Picture">📺</button>
+      <button class="tb-btn" id="settingsBtn" onclick="toggleSettings()" title="Theater Settings">⚙️</button>
+      <button class="tb-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <!-- Video area -->
+  <div class="video-stage" id="videoStage">
+    <div class="video-frame" id="videoFrame">
+      <div id="playerContainer"></div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottombar" id="bottombar">
+    <div class="progress-wrap">
+      <span class="progress-time" id="currentTime">0:00</span>
+      <div class="progress-bar" id="progressBar" onclick="seekVideo(event)">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-time" id="duration">0:00</span>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn" onclick="rewind(10)" title="Rewind 10s">⏪</button>
+      <button class="ctrl-btn" id="playBtn" onclick="togglePlay()" title="Play/Pause">▶️</button>
+      <button class="ctrl-btn" onclick="forward(10)" title="Forward 10s">⏩</button>
+      <select class="speed-select" id="speedSelect" onchange="changeSpeed(this.value)">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
+      <div class="controls-spacer"></div>
+      <button class="ctrl-btn" id="loopBtn" onclick="toggleLoop()" title="Loop">🔁</button>
+      <button class="ctrl-btn" id="focusBtn" onclick="toggleFocus()" title="Focus Mode">🎯</button>
+      <button class="ctrl-btn" id="nightBtn" onclick="toggleNight()" title="Night Mode">🌙</button>
+      <button class="ctrl-btn" id="ambientBtn" onclick="toggleAmbient()" title="Ambient Light">✨</button>
+    </div>
+  </div>
+
+  <!-- Hint bar -->
+  <div class="hint-bar" id="hintBar">
+    Space = Play/Pause • F = Fullscreen • ← → = Seek • ↑ ↓ = Volume • Esc = Exit Theater
+  </div>
+
+</div>
+
+<!-- ============ SETTINGS PANEL ============ -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <div class="settings-title">Theater Settings</div>
+    <button class="settings-close" onclick="toggleSettings()">✕</button>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-label">Theater Mode</div>
+    <div class="theater-grid">
+      <div class="theater-option active" data-theater="movie" onclick="setTheater('movie')">
+        <span class="em">🎬</span><span class="nm">Movie</span>
+      </div>
+      <div class="theater-option" data-theater="home" onclick="setTheater('home')">
+        <span class="em">🏠</span><span class="nm">Home</span>
+      </div>
+      <div class="theater-option" data-theater="neon" onclick="setTheater('neon')">
+        <span class="em">🌌</span><span class="nm">Neon</span>
+      </div>
+      <div class="theater-option" data-theater="midnight" onclick="setTheater('midnight')">
+        <span class="em">🌙</span><span class="nm">Midnight</span>
+      </div>
+      <div class="theater-option" data-theater="minimal" onclick="setTheater('minimal')">
+        <span class="em">✨</span><span class="nm">Minimal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-label">Effects</div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Distraction-Free Mode</div>
+        <div class="toggle-desc">Hide YouTube UI, comments, suggestions</div>
+      </div>
+      <div class="toggle on" id="toggleDistraction" onclick="toggleDistraction()"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Cinema Bars</div>
+        <div class="toggle-desc">Letterbox top and bottom</div>
+      </div>
+      <div class="toggle" id="toggleCinema" onclick="toggleCinemaBars()"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Vignette</div>
+        <div class="toggle-desc">Darkened corners</div>
+      </div>
+      <div class="toggle on" id="toggleVignette" onclick="toggleVignette()"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Film Grain</div>
+        <div class="toggle-desc">Subtle film texture</div>
+      </div>
+      <div class="toggle" id="toggleGrain" onclick="toggleGrain()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-label">Saved</div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Auto-Save to Box</div>
+        <div class="toggle-desc">Bookmark videos in soloDS Box</div>
+      </div>
+      <div class="toggle on" id="toggleSave" onclick="toggleSave()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group" style="margin-top:20px">
+    <button class="back-btn" style="width:100%;justify-content:center" onclick="saveToBox()">
+      💾 Save this video to Box
+    </button>
+    <button class="back-btn" style="width:100%;justify-content:center;margin-top:10px" onclick="copyShareLink()">
+      🔗 Copy Theater Link
+    </button>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ==========================================================
+   SOLODS-THEATER — Cinema Mode for YouTube
+   Pro feature of soloDS Box
+   ========================================================== */
+
+// ============ STATE ============
+const state = {
+  videoId: null,
+  player: null,
+  playerReady: false,
+  isPlaying: false,
+  currentTime: 0,
+  duration: 0,
+  loop: false,
+  focus: false,
+  night: false,
+  ambient: true,
+  vignette: true,
+  grain: false,
+  cinemaBars: false,
+  distractionFree: true,
+  autoSave: true,
+  theaterMode: 'movie',
+  pip: false,
+  updateTimer: null,
+  history: JSON.parse(localStorage.getItem('solods_theater_history') || '[]'),
+};
+
+// ============ YOUTUBE URL PARSING ============
+function extractVideoId(url) {
+  if (!url) return null;
+  url = url.trim();
+
+  // If it's already just an ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+
+  // Try various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+  ];
+
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+
+  return null;
+}
+
+// ============ LANDING ============
+document.getElementById('urlInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') startTheater();
+});
+
+// Auto-paste from clipboard / URL param
+(function initFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const v = params.get('v') || params.get('url');
+  if (v) {
+    document.getElementById('urlInput').value = v;
+    setTimeout(startTheater, 300);
+  }
+})();
+
+function renderHistory() {
+  const wrap = document.getElementById('recentWrap');
+  const list = document.getElementById('recentList');
+
+  if (!state.history.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  list.innerHTML = state.history.slice(0, 5).map((h, i) => `
+    <div class="recent-item" onclick="startTheaterById('${h.id}')">
+      <span class="icon">🎬</span>
+      <div class="info">
+        <div class="title">${escapeHtml(h.title || 'YouTube Video')}</div>
+        <div class="meta">${timeAgo(h.time)}</div>
+      </div>
+      <span style="color:var(--text-muted)">▶</span>
+    </div>
+  `).join('');
+}
+
+function startTheater() {
+  const url = document.getElementById('urlInput').value;
+  const id = extractVideoId(url);
+
+  if (!id) {
+    showToast('Invalid YouTube URL. Try again.', 'error');
+    return;
+  }
+
+  startTheaterById(id);
+}
+
+function startTheaterById(id) {
+  state.videoId = id;
+
+  // Save to history
+  state.history = [
+    { id, title: 'YouTube Video', time: Date.now() },
+    ...state.history.filter(h => h.id !== id),
+  ].slice(0, 20);
+  localStorage.setItem('solods_theater_history', JSON.stringify(state.history));
+
+  // Switch screens
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('theater').classList.add('active');
+
+  // Build player
+  buildPlayer(id);
+
+  // Load saved preferences
+  loadPrefs();
+
+  // Apply theater mode
+  applyTheaterMode(state.theaterMode);
+
+  // Start update timer
+  startUpdateTimer();
+
+  showToast('🎬 Entering theater...', 'success');
+}
+
+// ============ PLAYER BUILD ============
+function buildPlayer(videoId) {
+  const container = document.getElementById('playerContainer');
+  container.innerHTML = `
+    <iframe
+      id="ytPlayer"
+      src="https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&rel=0&modestbranding=1&playsinline=1&fs=0&color=white"
+      allow="autoplay; encrypted-media; picture-in-picture"
+      allowfullscreen
+    ></iframe>
+  `;
+
+  // Load YouTube IFrame API
+  if (!window.YT) {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = initYTPlayer;
+  } else if (window.YT && window.YT.Player) {
+    initYTPlayer();
+  }
+}
+
+function initYTPlayer() {
+  if (!document.getElementById('ytPlayer')) return;
+  state.player = new YT.Player('ytPlayer', {
+    events: {
+      onReady: () => {
+        state.playerReady = true;
+        state.duration = state.player.getDuration();
+        updateDurationDisplay();
+      },
+      onStateChange: (e) => {
+        state.isPlaying = (e.data === YT.PlayerState.PLAYING);
+        updatePlayButton();
+        if (e.data === YT.PlayerState.ENDED && state.loop) {
+          state.player.seekTo(0);
+          state.player.playVideo();
+        }
+      },
+    },
+  });
+}
+
+// ============ THEATER MODES ============
+function setTheater(mode) {
+  state.theaterMode = mode;
+  document.documentElement.setAttribute('data-theater', mode);
+  localStorage.setItem('solods_theater_mode', mode);
+
+  document.querySelectorAll('.theater-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.theater === mode);
+  });
+
+  showToast(`🎬 ${mode.charAt(0).toUpperCase() + mode.slice(1)} Theater activated`, 'success');
+}
+
+function applyTheaterMode(mode) {
+  document.documentElement.setAttribute('data-theater', mode);
+  document.querySelectorAll('.theater-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.theater === mode);
+  });
+}
+
+// ============ TOGGLES ============
+function togglePlay() {
+  if (!state.player) return;
+  if (state.isPlaying) state.player.pauseVideo();
+  else state.player.playVideo();
+}
+function updatePlayButton() {
+  document.getElementById('playBtn').textContent = state.isPlaying ? '⏸️' : '▶️';
+}
+function rewind(s) { if (state.player) state.player.seekTo(Math.max(0, state.player.getCurrentTime() - s), true); }
+function forward(s) { if (state.player) state.player.seekTo(state.player.getCurrentTime() + s, true); }
+function changeSpeed(v) { if (state.player) state.player.setPlaybackRate(parseFloat(v)); }
+
+function toggleLoop() {
+  state.loop = !state.loop;
+  document.getElementById('loopBtn').classList.toggle('active', state.loop);
+  showToast(state.loop ? '🔁 Loop ON' : '➡️ Loop OFF', '');
+}
+
+function toggleFocus() {
+  state.focus = !state.focus;
+  document.getElementById('focusOverlay').classList.toggle('on', state.focus);
+  document.getElementById('focusBtn').classList.toggle('active', state.focus);
+  showToast(state.focus ? '🎯 Focus Mode ON' : '👁️ Focus Mode OFF', '');
+}
+
+function toggleNight() {
+  state.night = !state.night;
+  document.getElementById('nightFilter').classList.toggle('on', state.night);
+  document.getElementById('nightBtn').classList.toggle('active', state.night);
+  showToast(state.night ? '🌙 Night Mode ON' : '☀️ Night Mode OFF', '');
+}
+
+function toggleAmbient() {
+  state.ambient = !state.ambient;
+  document.getElementById('ambientGlow').style.opacity = state.ambient ? '' : '0';
+  document.getElementById('ambientBtn').classList.toggle('active', state.ambient);
+}
+
+function toggleVignette() {
+  state.vignette = !state.vignette;
+  document.getElementById('vignette').classList.toggle('off', !state.vignette);
+  document.getElementById('toggleVignette').classList.toggle('on', state.vignette);
+}
+
+function toggleGrain() {
+  state.grain = !state.grain;
+  document.getElementById('grain').classList.toggle('on', state.grain);
+  document.getElementById('toggleGrain').classList.toggle('on', state.grain);
+}
+
+function toggleCinemaBars() {
+  state.cinemaBars = !state.cinemaBars;
+  document.getElementById('videoFrame').classList.toggle('cinema-bars', state.cinemaBars);
+  document.getElementById('toggleCinema').classList.toggle('on', state.cinemaBars);
+}
+
+function toggleDistraction() {
+  state.distractionFree = !state.distractionFree;
+  document.getElementById('toggleDistraction').classList.toggle('on', state.distractionFree);
+  showToast(state.distractionFree ? '🎯 Distraction-Free ON' : '👁️ Distraction-Free OFF', '');
+}
+
+function toggleSave() {
+  state.autoSave = !state.autoSave;
+  document.getElementById('toggleSave').classList.toggle('on', state.autoSave);
+}
+
+function togglePiP() {
+  const w = document.getElementById('pipWindow');
+  if (!w) {
+    // Fallback: use YouTube PiP via iframe API (limited)
+    showToast('📺 PiP: use browser PiP button on video', '');
+    return;
+  }
+}
+
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+function toggleFullscreen() {
+  const el = document.getElementById('theater');
+  if (!document.fullscreenElement) {
+    el.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
+// ============ PROGRESS TRACKING ============
+function startUpdateTimer() {
+  state.updateTimer = setInterval(() => {
+    if (!state.player || !state.playerReady) return;
+    try {
+      state.currentTime = state.player.getCurrentTime() || 0;
+      state.duration = state.player.getDuration() || 0;
+      updateProgressUI();
+    } catch(e) {}
+  }, 500);
+}
+
+function updateProgressUI() {
+  const pct = state.duration ? (state.currentTime / state.duration) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('currentTime').textContent = formatTime(state.currentTime);
+}
+
+function updateDurationDisplay() {
+  document.getElementById('duration').textContent = formatTime(state.duration);
+}
+
+function seekVideo(e) {
+  if (!state.player || !state.duration) return;
+  const bar = document.getElementById('progressBar');
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  state.player.seekTo(pct * state.duration, true);
+}
+
+function formatTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  s = Math.floor(s);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+// ============ SETTINGS PERSISTENCE ============
+function loadPrefs() {
+  const saved = JSON.parse(localStorage.getItem('solods_theater_prefs') || '{}');
+  if (saved.theaterMode) setTheater(saved.theaterMode);
+  if (saved.focus) toggleFocus();
+  if (saved.night) toggleNight();
+  if (saved.vignette === false) toggleVignette();
+  if (saved.grain) toggleGrain();
+  if (saved.cinemaBars) toggleCinemaBars();
+}
+
+function savePrefs() {
+  localStorage.setItem('solods_theater_prefs', JSON.stringify({
+    theaterMode: state.theaterMode,
+    focus: state.focus,
+    night: state.night,
+    vignette: state.vignette,
+    grain: state.grain,
+    cinemaBars: state.cinemaBars,
+  }));
+}
+
+// ============ BOX INTEGRATION ============
+function saveToBox() {
+  const video = {
+    id: state.videoId,
+    title: 'YouTube Video',
+    url: `https://youtube.com/watch?v=${state.videoId}`,
+    savedAt: new Date().toISOString(),
+    theaterMode: state.theaterMode,
+  };
+
+  // Save to localStorage under Box's metadata key (to be picked up by BoxPro)
+  const boxData = JSON.parse(localStorage.getItem('solods_box_links') || '[]');
+  boxData.unshift({ id: Date.now().toString(), title: video.title, url: video.url });
+  localStorage.setItem('solods_box_links', JSON.stringify(boxData));
+
+  showToast('💾 Saved to your Box!', 'success');
+}
+
+function copyShareLink() {
+  const link = `https://softappweber.github.io/solods-theater/?v=${state.videoId}&mode=${state.theaterMode}`;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('🔗 Theater link copied!', 'success');
+  }).catch(() => {
+    showToast('Copy failed', 'error');
+  });
+}
+
+// ============ EXIT ============
+function exitTheater() {
+  if (state.updateTimer) clearInterval(state.updateTimer);
+  if (state.player && state.player.pauseVideo) state.player.pauseVideo();
+
+  savePrefs();
+
+  document.getElementById('theater').classList.remove('active');
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('playerContainer').innerHTML = '';
+
+  state.player = null;
+  state.playerReady = false;
+  state.isPlaying = false;
+
+  renderHistory();
+}
+
+// ============ KEYBOARD SHORTCUTS ============
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('landing').classList.contains('hidden') === false) return;
+
+  switch(e.key) {
+    case ' ':
+      e.preventDefault();
+      togglePlay();
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      rewind(5);
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      forward(5);
+      break;
+    case 'f':
+    case 'F':
+      toggleFullscreen();
+      break;
+    case 'n':
+    case 'N':
+      toggleNight();
+      break;
+    case 'o':
+    case 'O':
+      toggleFocus();
+      break;
+    case 'l':
+    case 'L':
+      toggleLoop();
+      break;
+    case 'Escape':
+      if (document.fullscreenElement) document.exitFullscreen();
+      else exitTheater();
+      break;
+  }
+});
+
+// ============ MOUSE IDLE HIDE ============
+let idleTimer;
+function resetIdle() {
+  document.getElementById('topbar')?.classList.remove('hidden');
+  document.getElementById('bottombar')?.classList.remove('hidden');
+  document.getElementById('hintBar')?.classList.add('hidden');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (state.isPlaying) {
+      document.getElementById('topbar')?.classList.add('hidden');
+      document.getElementById('bottombar')?.classList.add('hidden');
+    }
+  }, 3000);
+}
+document.addEventListener('mousemove', resetIdle);
+document.addEventListener('touchstart', resetIdle);
+
+// ============ TOASTS ============
+function showToast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ============ HELPERS ============
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' hr ago';
+  return Math.floor(h / 24) + ' days ago';
+}
+
+// ============ INIT ============
+renderHistory();
+console.log('%c🎬 solods-theater ready', 'color:#8b5cf6;font-size:16px;font-weight:bold');
+</script>
+
+</body>
+</html>
