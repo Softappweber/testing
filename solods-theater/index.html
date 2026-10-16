@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>solods-theater — Cinema Mode for YouTube</title>
+<meta name="description" content="solods-theater — Distraction-free cinema mode for YouTube. Ambient lighting, focus mode, night mode, 5 theater themes. No install. Works on mobile.">
+<style>
+:root{
+  --bg:#000;
+  --bg-soft:#0a0a0f;
+  --card:#131318;
+  --border:#23232e;
+  --text:#f5f5f7;
+  --dim:#a1a1aa;
+  --muted:#6b6b76;
+  --accent:#8b5cf6;
+  --accent-2:#6366f1;
+  --glow:rgba(139,92,246,0.5);
+  --success:#6ee7a8;
+  --danger:#ff7a7a;
+  --radius:14px;
+  --t:0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theater="movie"]{--amb1:#ff4444;--amb2:#991111;--bg:#0a0000}
+[data-theater="home"]{--amb1:#ffa366;--amb2:#cc7722;--bg:#0f0a05}
+[data-theater="neon"]{--amb1:#ff00ff;--amb2:#00ffff;--bg:#0a0010}
+[data-theater="midnight"]{--amb1:#1a1a2e;--amb2:#0a0a15;--bg:#000}
+[data-theater="minimal"]{--amb1:#888;--amb2:#444;--bg:#1a1a1a}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--t);
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ============ LANDING ============ */
+.landing{
+  position:fixed;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;text-align:center;
+  background:radial-gradient(ellipse at center,var(--glow),transparent 70%),var(--bg);
+  overflow-y:auto;
+  transition:opacity var(--t),visibility var(--t);
+}
+.landing.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.landing-logo{
+  font-size:80px;margin-bottom:18px;
+  animation:float 4s ease-in-out infinite;
+  filter:drop-shadow(0 20px 40px var(--glow));
+}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-15px) rotate(3deg)}}
+.landing h1{
+  font-size:clamp(30px,5vw,54px);font-weight:900;
+  letter-spacing:-2px;margin-bottom:12px;
+  background:linear-gradient(135deg,#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.landing .sub{
+  font-size:clamp(13px,1.8vw,17px);color:var(--dim);
+  max-width:580px;margin-bottom:32px;line-height:1.6;
+}
+.pro-badge{
+  display:inline-block;padding:6px 16px;margin-bottom:18px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  color:#000;font-size:11px;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;border-radius:100px;
+}
+.url-box{
+  display:flex;gap:10px;width:100%;max-width:620px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px;
+  transition:all 0.2s;
+}
+.url-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--glow)}
+.url-box input{flex:1;padding:14px 16px;font-size:15px}
+.url-box input::placeholder{color:var(--muted)}
+.url-box button{
+  padding:14px 26px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#fff;font-weight:700;font-size:14px;border-radius:10px;
+  transition:transform 0.2s;white-space:nowrap;
+}
+.url-box button:hover{transform:scale(1.03)}
+.url-box button:active{transform:scale(0.98)}
+
+.chips{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  margin-top:28px;max-width:660px;
+}
+.chip{
+  background:var(--card);border:1px solid var(--border);
+  padding:7px 13px;border-radius:100px;
+  font-size:12px;color:var(--dim);
+}
+.chip strong{color:var(--text)}
+
+.recent{
+  margin-top:36px;width:100%;max-width:620px;text-align:left;
+}
+.recent h3{
+  font-size:11px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:12px;text-align:center;
+}
+.recent-list{display:flex;flex-direction:column;gap:8px}
+.recent-item{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:all 0.2s;
+}
+.recent-item:hover{border-color:var(--accent);transform:translateX(4px)}
+.recent-item .ic{font-size:20px}
+.recent-item .info{flex:1;min-width:0}
+.recent-item .tt{
+  font-size:13.5px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.recent-item .mt{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ============ THEATER ============ */
+.theater{
+  position:fixed;inset:0;z-index:50;
+  display:none;flex-direction:column;
+  background:var(--bg);transition:background var(--t);
+}
+.theater.active{display:flex}
+
+.ambient{
+  position:absolute;inset:-20%;z-index:0;
+  background:
+    radial-gradient(circle at 30% 40%,var(--amb1),transparent 45%),
+    radial-gradient(circle at 70% 60%,var(--amb2),transparent 45%);
+  filter:blur(80px);opacity:0.45;
+  animation:ambPulse 8s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ambPulse{0%,100%{opacity:0.4}50%{opacity:0.6}}
+.ambient.off{display:none}
+
+.vignette{
+  position:absolute;inset:0;z-index:1;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.7) 100%);
+  pointer-events:none;transition:opacity 0.3s;
+}
+.vignette.off{opacity:0}
+
+.night{
+  position:absolute;inset:0;z-index:2;
+  background:rgba(255,147,41,0.08);
+  mix-blend-mode:multiply;pointer-events:none;
+  opacity:0;transition:opacity 0.3s;
+}
+.night.on{opacity:1}
+
+.focus{
+  position:absolute;inset:0;z-index:3;
+  backdrop-filter:blur(0);
+  transition:backdrop-filter 0.4s;
+  pointer-events:none;
+}
+.focus.on{
+  backdrop-filter:blur(8px);
+  -webkit-mask-image:radial-gradient(ellipse 65% 60% at 50% 50%,transparent 60%,black 100%);
+          mask-image:radial-gradient(ellipse 65% 60% at 50% 50%,transparent 60%,black 100%);
+}
+
+.grain{
+  position:absolute;inset:0;z-index:4;
+  pointer-events:none;opacity:0;transition:opacity 0.3s;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+.grain.on{opacity:0.15}
+
+/* Top bar */
+.topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 20px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.9),transparent);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.topbar.hidden{opacity:0;transform:translateY(-20px);pointer-events:none}
+.back-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  font-size:14px;font-weight:600;
+  transition:all 0.2s;
+}
+.back-btn:hover{background:rgba(255,255,255,0.15);transform:translateX(-3px)}
+.title{
+  flex:1;font-size:14px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 10px;
+}
+.tb{
+  width:42px;height:42px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;transition:all 0.2s;
+}
+.tb:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.tb.active{background:var(--accent);border-color:var(--accent)}
+
+/* Video stage */
+.stage{
+  position:relative;z-index:5;flex:1;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 30px;min-height:0;
+}
+.frame{
+  position:relative;width:100%;max-width:1400px;
+  aspect-ratio:16/9;background:#000;
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.05),
+             0 30px 80px rgba(0,0,0,0.8),
+             0 0 100px var(--glow);
+}
+.frame.cinema::before,.frame.cinema::after{
+  content:'';position:absolute;left:0;right:0;height:10%;
+  background:#000;z-index:10;pointer-events:none;
+}
+.frame.cinema::before{top:0}
+.frame.cinema::after{bottom:0}
+#ytPlayer{width:100%;height:100%}
+
+/* Bottom bar */
+.bottombar{
+  position:relative;z-index:10;
+  padding:18px 30px 22px;
+  background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.bottombar.hidden{opacity:0;transform:translateY(20px);pointer-events:none}
+
+.progress{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.ptime{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;min-width:45px}
+.pbar{
+  flex:1;height:5px;background:rgba(255,255,255,0.1);
+  border-radius:3px;overflow:hidden;cursor:pointer;position:relative;
+}
+.pfill{
+  height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  border-radius:3px;width:0%;transition:width 0.1s;
+}
+
+.controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cb{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;transition:all 0.2s;
+}
+.cb:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.cb.active{background:var(--accent);border-color:var(--accent)}
+.spd{
+  padding:10px 14px;border-radius:10px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.1);
+  font-size:13px;font-weight:600;cursor:pointer;
+}
+.spd option{background:#1a1a22}
+.spacer{flex:1}
+
+/* Settings panel */
+.panel{
+  position:fixed;top:0;right:0;bottom:0;z-index:60;
+  width:340px;max-width:90vw;
+  background:var(--bg-soft);border-left:1px solid var(--border);
+  padding:22px;overflow-y:auto;
+  transform:translateX(100%);transition:transform var(--t);
+  box-shadow:-20px 0 60px rgba(0,0,0,0.5);
+}
+.panel.open{transform:translateX(0)}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.ptitle{font-size:18px;font-weight:800}
+.pclose{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--card);display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all 0.2s;
+}
+.pclose:hover{background:var(--danger);color:#fff}
+
+.pgroup{margin-bottom:22px}
+.plabel{
+  font-size:11px;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;
+}
+.tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.topt{
+  padding:12px 8px;border-radius:12px;
+  background:var(--card);border:2px solid transparent;
+  text-align:center;cursor:pointer;transition:all 0.2s;
+}
+.topt:hover{transform:translateY(-2px)}
+.topt.active{border-color:var(--accent)}
+.topt .em{font-size:22px;display:block;margin-bottom:4px}
+.topt .nm{font-size:11.5px;font-weight:700}
+
+.trow{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.trow:last-child{border-bottom:none}
+.tinfo{flex:1}
+.tname{font-size:13.5px;font-weight:600}
+.tdesc{font-size:11px;color:var(--muted);margin-top:2px}
+.tog{
+  width:44px;height:25px;border-radius:13px;
+  background:var(--border);position:relative;
+  cursor:pointer;transition:background 0.2s;flex-shrink:0;
+}
+.tog::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:19px;height:19px;border-radius:50%;
+  background:#fff;transition:transform 0.2s;
+}
+.tog.on{background:var(--accent)}
+.tog.on::after{transform:translateX(19px)}
+
+.act-btn{
+  width:100%;padding:12px;border-radius:10px;
+  background:var(--card);border:1px solid var(--border);
+  font-size:13px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.2s;margin-bottom:8px;
+}
+.act-btn:hover{border-color:var(--accent)}
+
+/* Toast */
+.toasts{
+  position:fixed;bottom:90px;right:24px;z-index:200;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  background:var(--card);border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:12px;padding:12px 16px;
+  min-width:240px;font-size:13px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  animation:tIn 0.3s;pointer-events:auto;
+}
+@keyframes tIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--danger)}
+
+/* Error message */
+.err{
+  background:rgba(255,122,122,0.1);
+  border:1px solid var(--danger);
+  border-radius:12px;padding:12px 16px;
+  color:var(--danger);font-size:13px;
+  margin-top:14px;max-width:620px;display:none;
+}
+.err.show{display:block}
+
+/* Mobile */
+@media(max-width:768px){
+  .stage{padding:0 10px}
+  .topbar{padding:10px 12px}
+  .title{display:none}
+  .bottombar{padding:12px 14px 16px}
+  .controls{gap:9px}
+  .cb{width:38px;height:38px;font-size:15px}
+  .panel{width:100%}
+  .landing h1{font-size:30px}
+  .url-box{flex-direction:column;padding:6px}
+  .url-box button{width:100%}
+  .chips{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING ============ -->
+<div class="landing" id="landing">
+  <div class="landing-logo">🎬</div>
+  <div class="pro-badge">✨ Pro Feature</div>
+  <h1>solods-theater</h1>
+  <p class="sub">Cinema mode for YouTube. Paste any video URL and watch it like a movie theater — ambient lighting, focus mode, night mode, and 5 theater themes. No install. Works on mobile.</p>
+
+  <div class="url-box">
+    <input type="text" id="urlInput" placeholder="Paste YouTube URL..." autocomplete="off" spellcheck="false">
+    <button onclick="startTheater()">🎬 Enter Theater</button>
+  </div>
+
+  <div class="err" id="errBox"></div>
+
+  <div class="chips">
+    <div class="chip"><strong>🎬</strong> Cinema</div>
+    <div class="chip"><strong>🎯</strong> Distraction-Free</div>
+    <div class="chip"><strong>🌙</strong> Night Mode</div>
+    <div class="chip"><strong>✨</strong> Ambient</div>
+    <div class="chip"><strong>🎨</strong> 5 Themes</div>
+    <div class="chip"><strong>⚡</strong> Speed Control</div>
+    <div class="chip"><strong>🔁</strong> Loop</div>
+    <div class="chip"><strong>⌨️</strong> Shortcuts</div>
+  </div>
+
+  <div class="recent" id="recentWrap" style="display:none">
+    <h3>Recently Watched</h3>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+</div>
+
+<!-- ============ THEATER ============ -->
+<div class="theater" id="theater">
+  <div class="ambient" id="ambient"></div>
+  <div class="vignette" id="vignette"></div>
+  <div class="night" id="night"></div>
+  <div class="focus" id="focus"></div>
+  <div class="grain" id="grain"></div>
+
+  <div class="topbar" id="topbar">
+    <button class="back-btn" onclick="exitTheater()">← Back</button>
+    <div class="title" id="title">Now Playing</div>
+    <button class="tb" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+    <button class="tb" id="settingsBtn" onclick="togglePanel()" title="Settings">⚙️</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="frame" id="frame">
+      <div id="ytPlayer"></div>
+    </div>
+  </div>
+
+  <div class="bottombar" id="bottombar">
+    <div class="progress">
+      <span class="ptime" id="curTime">0:00</span>
+      <div class="pbar" id="pbar" onclick="seek(event)">
+        <div class="pfill" id="pfill"></div>
+      </div>
+      <span class="ptime" id="durTime">0:00</span>
+    </div>
+    <div class="controls">
+      <button class="cb" onclick="seekRel(-10)" title="Rewind 10s">⏪</button>
+      <button class="cb" id="playBtn" onclick="togglePlay()" title="Play/Pause">▶️</button>
+      <button class="cb" onclick="seekRel(10)" title="Forward 10s">⏩</button>
+      <select class="spd" id="speedSel" onchange="setSpeed(this.value)">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="cb" id="loopBtn" onclick="toggleLoop()" title="Loop">🔁</button>
+      <button class="cb" id="focusBtn" onclick="toggleFocus()" title="Focus Mode">🎯</button>
+      <button class="cb" id="nightBtn" onclick="toggleNight()" title="Night Mode">🌙</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS PANEL ============ -->
+<div class="panel" id="panel">
+  <div class="phead">
+    <div class="ptitle">Theater Settings</div>
+    <button class="pclose" onclick="togglePanel()">✕</button>
+  </div>
+
+  <div class="pgroup">
+    <div class="plabel">Theater Mode</div>
+    <div class="tgrid">
+      <div class="topt active" data-mode="movie" onclick="setTheater('movie')">
+        <span class="em">🎬</span><span class="nm">Movie</span>
+      </div>
+      <div class="topt" data-mode="home" onclick="setTheater('home')">
+        <span class="em">🏠</span><span class="nm">Home</span>
+      </div>
+      <div class="topt" data-mode="neon" onclick="setTheater('neon')">
+        <span class="em">🌌</span><span class="nm">Neon</span>
+      </div>
+      <div class="topt" data-mode="midnight" onclick="setTheater('midnight')">
+        <span class="em">🌙</span><span class="nm">Midnight</span>
+      </div>
+      <div class="topt" data-mode="minimal" onclick="setTheater('minimal')">
+        <span class="em">✨</span><span class="nm">Minimal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pgroup">
+    <div class="plabel">Effects</div>
+    <div class="trow">
+      <div class="tinfo">
+        <div class="tname">Ambient Light</div>
+        <div class="tdesc">Colorful glow around video</div>
+      </div>
+      <div class="tog on" id="togAmbient" onclick="toggleAmbient()"></div>
+    </div>
+    <div class="trow">
+      <div class="tinfo">
+        <div class="tname">Vignette</div>
+        <div class="tdesc">Darkened corners</div>
+      </div>
+      <div class="tog on" id="togVignette" onclick="toggleVignette()"></div>
+    </div>
+    <div class="trow">
+      <div class="tinfo">
+        <div class="tname">Cinema Bars</div>
+        <div class="tdesc">Letterbox top/bottom</div>
+      </div>
+      <div class="tog" id="togCinema" onclick="toggleCinema()"></div>
+    </div>
+    <div class="trow">
+      <div class="tinfo">
+        <div class="tname">Film Grain</div>
+        <div class="tdesc">Subtle texture</div>
+      </div>
+      <div class="tog" id="togGrain" onclick="toggleGrain()"></div>
+    </div>
+  </div>
+
+  <div class="pgroup">
+    <div class="plabel">Actions</div>
+    <button class="act-btn" onclick="saveToBox()">💾 Save to Box</button>
+    <button class="act-btn" onclick="copyLink()">🔗 Copy Theater Link</button>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ==========================================================
+   SOLODS-THEATER — Working YT API Player
+   ========================================================== */
+
+const state = {
+  player: null,
+  ready: false,
+  playing: false,
+  duration: 0,
+  loop: false,
+  focus: false,
+  night: false,
+  ambient: true,
+  vignette: true,
+  grain: false,
+  cinema: false,
+  theater: 'movie',
+  timer: null,
+  videoId: null,
+  history: JSON.parse(localStorage.getItem('st_history') || '[]'),
+};
+
+/* ============ YOUTUBE URL PARSER ============ */
+function extractId(url) {
+  if (!url) return null;
+  url = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+/* ============ LANDING ============ */
+document.getElementById('urlInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') startTheater();
+});
+
+// Auto-load from URL params
+(function(){
+  const p = new URLSearchParams(location.search);
+  const v = p.get('v');
+  if (v) {
+    document.getElementById('urlInput').value = v;
+    setTimeout(startTheater, 300);
+  }
+})();
+
+function showErr(msg) {
+  const e = document.getElementById('errBox');
+  e.textContent = msg;
+  e.classList.add('show');
+  setTimeout(() => e.classList.remove('show'), 4000);
+}
+
+function renderHistory() {
+  const wrap = document.getElementById('recentWrap');
+  const list = document.getElementById('recentList');
+  if (!state.history.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = state.history.slice(0, 5).map(h => `
+    <div class="recent-item" onclick="startWithId('${h.id}')">
+      <span class="ic">🎬</span>
+      <div class="info">
+        <div class="tt">${escapeHtml(h.title || 'YouTube Video')}</div>
+        <div class="mt">${timeAgo(h.time)}</div>
+      </div>
+      <span style="color:var(--muted)">▶</span>
+    </div>
+  `).join('');
+}
+
+function startTheater() {
+  const url = document.getElementById('urlInput').value;
+  const id = extractId(url);
+  if (!id) { showErr('Invalid YouTube URL. Try again.'); return; }
+  startWithId(id);
+}
+
+function startWithId(id) {
+  state.videoId = id;
+
+  // Save history
+  state.history = [
+    { id, title: 'YouTube Video', time: Date.now() },
+    ...state.history.filter(h => h.id !== id),
+  ].slice(0, 20);
+  localStorage.setItem('st_history', JSON.stringify(state.history));
+
+  // Switch screens
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('theater').classList.add('active');
+
+  // Apply saved theater mode
+  const savedMode = localStorage.getItem('st_mode') || 'movie';
+  setTheater(savedMode, true);
+
+  // Load YT API and build player
+  buildPlayer(id);
+
+  showToast('🎬 Theater loaded');
+}
+
+/* ============ YT PLAYER — PROPER WAY ============ */
+function buildPlayer(videoId) {
+  // Reset player container
+  const container = document.getElementById('ytPlayer');
+  container.innerHTML = '';
+
+  // If YT API already loaded, create player directly
+  if (window.YT && window.YT.Player) {
+    createPlayer(videoId);
+    return;
+  }
+
+  // Set global callback BEFORE loading script
+  window.onYouTubeIframeAPIReady = function() {
+    createPlayer(videoId);
+  };
+
+  // Load YT API only once
+  if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }
+}
+
+function createPlayer(videoId) {
+  const container = document.getElementById('ytPlayer');
+  container.innerHTML = '';
+
+  // YT API needs a div — it replaces it with iframe
+  const playerDiv = document.createElement('div');
+  playerDiv.id = 'ytPlayerInner';
+  container.appendChild(playerDiv);
+
+  state.player = new YT.Player('ytPlayerInner', {
+    videoId: videoId,
+    playerVars: {
+      autoplay: 1,
+      rel: 0,
+      modestbranding: 1,
+      playsinline: 1,
+      fs: 0,
+      controls: 1, // keep YouTube controls as fallback
+      iv_load_policy: 3, // hide annotations
+      cc_load_policy: 0,
+    },
+    events: {
+      onReady: onPlayerReady,
+      onStateChange: onPlayerStateChange,
+      onError: onPlayerError,
+    },
+  });
+}
+
+function onPlayerReady(e) {
+  state.ready = true;
+  state.duration = state.player.getDuration() || 0;
+  document.getElementById('durTime').textContent = fmt(state.duration);
+
+  // Apply default speed
+  state.player.setPlaybackRate(1);
+
+  // Start progress timer
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(tick, 500);
+
+  // Try to play (autoplay may need user interaction)
+  try { state.player.playVideo(); } catch(e) {}
+}
+
+function onPlayerStateChange(e) {
+  state.playing = (e.data === YT.PlayerState.PLAYING);
+  document.getElementById('playBtn').textContent = state.playing ? '⏸️' : '▶️';
+
+  if (e.data === YT.PlayerState.ENDED && state.loop) {
+    state.player.seekTo(0);
+    state.player.playVideo();
+  }
+
+  if (e.data === YT.PlayerState.PLAYING) {
+    state.duration = state.player.getDuration() || 0;
+    document.getElementById('durTime').textContent = fmt(state.duration);
+  }
+}
+
+function onPlayerError(e) {
+  showToast('⚠️ Video unavailable or restricted', 'error');
+  console.error('YT error:', e.data);
+}
+
+/* ============ CONTROL FUNCTIONS ============ */
+function togglePlay() {
+  if (!state.ready) return;
+  if (state.playing) state.player.pauseVideo();
+  else state.player.playVideo();
+}
+
+function seekRel(s) {
+  if (!state.ready) return;
+  const t = state.player.getCurrentTime();
+  state.player.seekTo(Math.max(0, t + s), true);
+}
+
+function seek(e) {
+  if (!state.ready) return;
+  const bar = document.getElementById('pbar');
+  const r = bar.getBoundingClientRect();
+  const pct = (e.clientX - r.left) / r.width;
+  state.player.seekTo(pct * state.duration, true);
+}
+
+function setSpeed(v) {
+  if (state.ready) state.player.setPlaybackRate(parseFloat(v));
+}
+
+function toggleLoop() {
+  state.loop = !state.loop;
+  document.getElementById('loopBtn').classList.toggle('active', state.loop);
+  showToast(state.loop ? '🔁 Loop ON' : 'Loop OFF');
+}
+
+function toggleFocus() {
+  state.focus = !state.focus;
+  document.getElementById('focus').classList.toggle('on', state.focus);
+  document.getElementById('focusBtn').classList.toggle('active', state.focus);
+  showToast(state.focus ? '🎯 Focus ON' : 'Focus OFF');
+}
+
+function toggleNight() {
+  state.night = !state.night;
+  document.getElementById('night').classList.toggle('on', state.night);
+  document.getElementById('nightBtn').classList.toggle('active', state.night);
+  showToast(state.night ? '🌙 Night Mode ON' : 'Night Mode OFF');
+}
+
+function toggleAmbient() {
+  state.ambient = !state.ambient;
+  document.getElementById('ambient').classList.toggle('off', !state.ambient);
+  document.getElementById('togAmbient').classList.toggle('on', state.ambient);
+}
+
+function toggleVignette() {
+  state.vignette = !state.vignette;
+  document.getElementById('vignette').classList.toggle('off', !state.vignette);
+  document.getElementById('togVignette').classList.toggle('on', state.vignette);
+}
+
+function toggleCinema() {
+  state.cinema = !state.cinema;
+  document.getElementById('frame').classList.toggle('cinema', state.cinema);
+  document.getElementById('togCinema').classList.toggle('on', state.cinema);
+}
+
+function toggleGrain() {
+  state.grain = !state.grain;
+  document.getElementById('grain').classList.toggle('on', state.grain);
+  document.getElementById('togGrain').classList.toggle('on', state.grain);
+}
+
+function setTheater(mode, silent) {
+  state.theater = mode;
+  document.documentElement.setAttribute('data-theater', mode);
+  localStorage.setItem('st_mode', mode);
+  document.querySelectorAll('.topt').forEach(el => {
+    el.classList.toggle('active', el.dataset.mode === mode);
+  });
+  if (!silent) showToast(`🎬 ${mode.charAt(0).toUpperCase() + mode.slice(1)} Theater`);
+}
+
+function togglePanel() {
+  document.getElementById('panel').classList.toggle('open');
+}
+
+function toggleFullscreen() {
+  const el = document.getElementById('theater');
+  if (!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+
+/* ============ PROGRESS ============ */
+function tick() {
+  if (!state.ready || !state.player) return;
+  try {
+    const cur = state.player.getCurrentTime() || 0;
+    const dur = state.player.getDuration() || 0;
+    state.duration = dur;
+    document.getElementById('curTime').textContent = fmt(cur);
+    document.getElementById('durTime').textContent = fmt(dur);
+    const pct = dur ? (cur / dur) * 100 : 0;
+    document.getElementById('pfill').style.width = pct + '%';
+  } catch(e) {}
+}
+
+/* ============ BOX INTEGRATION ============ */
+function saveToBox() {
+  if (!state.videoId) return;
+  const link = {
+    id: Date.now().toString(),
+    title: 'YouTube Video',
+    url: `https://youtube.com/watch?v=${state.videoId}`,
+  };
+  const box = JSON.parse(localStorage.getItem('solods_box_links') || '[]');
+  box.unshift(link);
+  localStorage.setItem('solods_box_links', JSON.stringify(box));
+  showToast('💾 Saved to Box!', 'success');
+}
+
+function copyLink() {
+  if (!state.videoId) return;
+  const url = `${location.origin}${location.pathname}?v=${state.videoId}`;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('🔗 Link copied!', 'success'))
+    .catch(() => showToast('Copy failed', 'error'));
+}
+
+/* ============ EXIT ============ */
+function exitTheater() {
+  if (state.timer) clearInterval(state.timer);
+  if (state.player && state.player.pauseVideo) state.player.pauseVideo();
+  document.getElementById('theater').classList.remove('active');
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('ytPlayer').innerHTML = '';
+  state.player = null;
+  state.ready = false;
+  state.playing = false;
+  renderHistory();
+}
+
+/* ============ KEYBOARD ============ */
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('landing').classList.contains('hidden')) {
+    switch(e.key) {
+      case ' ': e.preventDefault(); togglePlay(); break;
+      case 'ArrowLeft': e.preventDefault(); seekRel(-5); break;
+      case 'ArrowRight': e.preventDefault(); seekRel(5); break;
+      case 'f': case 'F': toggleFullscreen(); break;
+      case 'n': case 'N': toggleNight(); break;
+      case 'o': case 'O': toggleFocus(); break;
+      case 'l': case 'L': toggleLoop(); break;
+      case 'Escape':
+        if (document.fullscreenElement) document.exitFullscreen();
+        else exitTheater();
+        break;
+    }
+  }
+});
+
+/* ============ IDLE HIDE ============ */
+let idleT;
+document.addEventListener('mousemove', () => {
+  document.getElementById('topbar')?.classList.remove('hidden');
+  document.getElementById('bottombar')?.classList.remove('hidden');
+  clearTimeout(idleT);
+  idleT = setTimeout(() => {
+    if (state.playing) {
+      document.getElementById('topbar')?.classList.add('hidden');
+      document.getElementById('bottombar')?.classList.add('hidden');
+    }
+  }, 3000);
+});
+
+/* ============ TOASTS ============ */
+function showToast(msg, type='') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ============ HELPERS ============ */
+function fmt(s) {
+  if (!s || isNaN(s)) return '0:00';
+  s = Math.floor(s);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  const m = Math.floor(d / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' hr ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+/* ============ INIT ============ */
+renderHistory();
+console.log('%c🎬 solods-theater ready', 'color:#8b5cf6;font-size:16px;font-weight:bold');
+</script>
+</body>
+</html>
