@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Box</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#131318;--surface2:#1a1a22;--border:#23232e;--text:#f5f5f7;--text2:#a1a1aa;--text3:#6b6b76;--accent:#6366f1;--accent2:#8b5cf6;--radius:14px;--radius-lg:20px;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5);--transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+[data-theme="light"]{--bg:#f8f9fc;--surface:#ffffff;--surface2:#f1f2f6;--border:#e5e7eb;--text:#111113;--text2:#55555e;--text3:#9a9aa5;--shadow:0 4px 16px rgba(0,0,0,0.06);--shadow-lg:0 20px 50px rgba(0,0,0,0.1)}
+[data-theme="ocean"]{--bg:#0c1a2d;--surface:#10233d;--surface2:#16314f;--border:#1e4264;--text:#e8f0fa;--text2:#9ab8d8;--text3:#5a7d9e;--accent:#0ea5e9;--accent2:#3b82f6;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="forest"]{--bg:#0d1a12;--surface:#132619;--surface2:#1a3320;--border:#23452b;--text:#e8f5ec;--text2:#a3c9b0;--text3:#5e8c6d;--accent:#22c55e;--accent2:#16a34a;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="sunset"]{--bg:#1a0f0f;--surface:#261414;--surface2:#331b1b;--border:#452525;--text:#faf0f0;--text2:#c9a3a3;--text3:#8e5e5e;--accent:#f97316;--accent2:#ef4444;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="rose"]{--bg:#1a0f14;--surface:#261418;--surface2:#331b20;--border:#45252c;--text:#faf0f2;--text2:#c9a3aa;--text3:#8e5e66;--accent:#ec4899;--accent2:#f43f5e;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="midnight"]{--bg:#0a0a1a;--surface:#12122a;--surface2:#1a1a3a;--border:#252550;--text:#e8e8ff;--text2:#a3a3cc;--text3:#5e5e8e;--accent:#8b5cf6;--accent2:#6d28d9;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="gold"]{--bg:#1a140a;--surface:#261d0f;--surface2:#332815;--border:#453620;--text:#faf5e8;--text2:#c9bda3;--text3:#8e8360;--accent:#f59e0b;--accent2:#d97706;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="arctic"]{--bg:#0a141f;--surface:#0f1e2e;--surface2:#14283d;--border:#1e3a55;--text:#e8f4fa;--text2:#a3c4d8;--text3:#5e829e;--accent:#38bdf8;--accent2:#0284c7;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+[data-theme="neon"]{--bg:#0a0f0a;--surface:#0f150f;--surface2:#142014;--border:#1e301e;--text:#e8fae8;--text2:#a3c9a3;--text3:#5e8e5e;--accent:#22d3ee;--accent2:#ec4899;--shadow:0 4px 24px rgba(0,0,0,0.3);--shadow-lg:0 20px 60px rgba(0,0,0,0.5)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;transition:background 0.4s}
+.app{max-width:1200px;margin:auto;padding:24px 20px 60px}
+#uploadProgressContainer{position:fixed;top:0;left:0;width:100%;z-index:9999;display:none}
+#uploadProgressContainer.active{display:block}
+#uploadProgressBar{height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.3s}
+#uploadProgressText{position:fixed;top:12px;right:16px;background:var(--surface);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:9999;display:none}
+#uploadProgressText.active{display:block}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.brand h1{font-size:20px;font-weight:700}
+.brand p{font-size:11px;color:var(--text3);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:10px}
+#status{font-size:11px;color:var(--text2);background:var(--surface2);padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-weight:500}
+.theme-select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:13px;cursor:pointer;font-weight:500}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:24px;background:var(--surface);padding:6px;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
+nav button{border:0;background:transparent;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:var(--transition)}
+nav button:hover{background:var(--surface2);color:var(--text)}
+nav button.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600}
+.panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow)}
+.panel.active{display:block;animation:panelIn 0.3s ease}
+@keyframes panelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.panel h2{font-size:18px;margin:0 0 20px;font-weight:600}
+input,textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;font:inherit;font-size:14px;background:var(--surface2);color:var(--text)}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{min-height:150px;resize:vertical}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0;border-radius:10px;padding:12px 24px;cursor:pointer;font-size:14px;font-weight:600;transition:var(--transition)}
+button.primary:hover{transform:translateY(-2px)}
+.field{margin-bottom:14px}
+.filebox{border:2px dashed var(--border);border-radius:var(--radius);padding:36px;text-align:center;margin-bottom:16px;cursor:pointer;transition:var(--transition);background:var(--surface2)}
+.filebox:hover{border-color:var(--accent);background:var(--surface)}
+.filebox-label{font-size:14px;color:var(--text2);font-weight:500}
+.filebox input{display:none}
+.item{border-top:1px solid var(--border);padding:16px 0;border-radius:8px}
+.item:first-child{border-top:0}
+.item:hover{background:var(--surface2);margin:0 -12px;padding:16px 12px}
+.item-title{font-weight:600;margin-bottom:6px;font-size:14px}
+.item-meta{font-size:11px;color:var(--text3);margin-top:4px}
+.item-actions{display:flex;gap:8px;margin-top:10px}
+.item-action-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text2);transition:var(--transition)}
+.item-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.empty{color:var(--text3);padding:28px 0;text-align:center;font-size:14px;background:var(--surface2);border-radius:10px;border:1px dashed var(--border)}
+@media(max-width:700px){nav{grid-template-columns:repeat(2,1fr);gap:4px}header{flex-direction:column;align-items:flex-start;gap:14px}.header-right{width:100%;justify-content:space-between}.panel{padding:18px}}
+
+[data-theme="candy"]{--bg:#281326;--surface:#381a36;--surface2:#4b2548;--border:#67345d;--text:#fff1fc;--text2:#f2bbdf;--text3:#c38baa;--accent:#ff65c3;--accent2:#a855f7}
+[data-theme="mint"]{--bg:#08221e;--surface:#11332c;--surface2:#1b453c;--border:#2a6055;--text:#e8fff8;--text2:#a8d8c9;--text3:#7fa99e;--accent:#2dd4bf;--accent2:#14b8a6}
+[data-theme="lavender"]{--bg:#1d1531;--surface:#291e40;--surface2:#372952;--border:#51406c;--text:#f7f0ff;--text2:#c8b6e5;--text3:#9c8bb9;--accent:#a78bfa;--accent2:#8b5cf6}
+#sdp-root{margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;padding:0!important;color:var(--text)!important}
+#sdp-root .sdp-head h2{display:none}
+#sdp-root .sdp-tabs{display:none!important}
+#sdp-root .sdp-head{justify-content:space-between}
+#sdp-root .sdp-head input{flex:1;min-width:150px}
+#sdp-root .sdp-head select{max-width:150px}
+#sdp-root .sdp-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin:10px 0}
+#sdp-root .sdp-tools{margin:16px 0}
+#sdp-root .sdp-tools button{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+#sdp-root #sdp-meter{margin-top:12px}
+#sdp-root .sdp-muted{color:var(--text2)}
+#sdp-root #sdp-modal .sdp-dialog{background:var(--surface);color:var(--text)}
+nav.sdp-main-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+nav.sdp-main-nav button{font-size:12px}
+@media(max-width:700px){nav.sdp-main-nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+<style id="solods-20-themes">html[data-theme="midnight"]{--bg:#0b1020;--surface:#161e34;--surface2:#161e34;--border:#818cf855;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#818cf8;--accent2:#818cf8;--shadow:0 8px 30px #0002;}
+html[data-theme="snow"]{--bg:#f7f9ff;--surface:#ffffff;--surface2:#ffffff;--border:#6366f155;--text:#152235;--text2:#475569;--text3:#64748b;--accent:#6366f1;--accent2:#6366f1;--shadow:0 8px 30px #0002;}
+html[data-theme="ocean"]{--bg:#091d33;--surface:#12304b;--surface2:#12304b;--border:#38bdf855;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#38bdf8;--accent2:#38bdf8;--shadow:0 8px 30px #0002;}
+html[data-theme="forest"]{--bg:#0b2219;--surface:#153b2a;--surface2:#153b2a;--border:#4ade8055;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#4ade80;--accent2:#4ade80;--shadow:0 8px 30px #0002;}
+html[data-theme="sunset"]{--bg:#2c1520;--surface:#442333;--surface2:#442333;--border:#fb923c55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#fb923c;--accent2:#fb923c;--shadow:0 8px 30px #0002;}
+html[data-theme="rose"]{--bg:#2a1321;--surface:#432036;--surface2:#432036;--border:#fb718555;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#fb7185;--accent2:#fb7185;--shadow:0 8px 30px #0002;}
+html[data-theme="gold"]{--bg:#231b0e;--surface:#382c16;--surface2:#382c16;--border:#fbbf2455;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#fbbf24;--accent2:#fbbf24;--shadow:0 8px 30px #0002;}
+html[data-theme="arctic"]{--bg:#eaf7ff;--surface:#ffffff;--surface2:#ffffff;--border:#0891b255;--text:#152235;--text2:#475569;--text3:#64748b;--accent:#0891b2;--accent2:#0891b2;--shadow:0 8px 30px #0002;}
+html[data-theme="neon"]{--bg:#0b1020;--surface:#181e31;--surface2:#181e31;--border:#22d3ee55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#22d3ee;--accent2:#22d3ee;--shadow:0 8px 30px #0002;}
+html[data-theme="candy"]{--bg:#2c1433;--surface:#422048;--surface2:#422048;--border:#f472b655;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#f472b6;--accent2:#f472b6;--shadow:0 8px 30px #0002;}
+html[data-theme="mint"]{--bg:#0d2826;--surface:#17413b;--surface2:#17413b;--border:#2dd4bf55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#2dd4bf;--accent2:#2dd4bf;--shadow:0 8px 30px #0002;}
+html[data-theme="lavender"]{--bg:#20152f;--surface:#342247;--surface2:#342247;--border:#c4b5fd55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#c4b5fd;--accent2:#c4b5fd;--shadow:0 8px 30px #0002;}
+html[data-theme="emerald"]{--bg:#082a24;--surface:#16443a;--surface2:#16443a;--border:#34d39955;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#34d399;--accent2:#34d399;--shadow:0 8px 30px #0002;}
+html[data-theme="ruby"]{--bg:#2b1018;--surface:#431c28;--surface2:#431c28;--border:#fb718555;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#fb7185;--accent2:#fb7185;--shadow:0 8px 30px #0002;}
+html[data-theme="coffee"]{--bg:#251b17;--surface:#3c2b24;--surface2:#3c2b24;--border:#d6a77a55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#d6a77a;--accent2:#d6a77a;--shadow:0 8px 30px #0002;}
+html[data-theme="peach"]{--bg:#fff1e9;--surface:#fffaf5;--surface2:#fffaf5;--border:#ea580c55;--text:#152235;--text2:#475569;--text3:#64748b;--accent:#ea580c;--accent2:#ea580c;--shadow:0 8px 30px #0002;}
+html[data-theme="slate"]{--bg:#111827;--surface:#1f2937;--surface2:#1f2937;--border:#94a3b855;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#94a3b8;--accent2:#94a3b8;--shadow:0 8px 30px #0002;}
+html[data-theme="solar"]{--bg:#fffbea;--surface:#ffffff;--surface2:#ffffff;--border:#d9770655;--text:#152235;--text2:#475569;--text3:#64748b;--accent:#d97706;--accent2:#d97706;--shadow:0 8px 30px #0002;}
+html[data-theme="royal"]{--bg:#161337;--surface:#29235a;--surface2:#29235a;--border:#a78bfa55;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#a78bfa;--accent2:#a78bfa;--shadow:0 8px 30px #0002;}
+html[data-theme="coral"]{--bg:#251a20;--surface:#3e2831;--surface2:#3e2831;--border:#fb718555;--text:#f6f7fb;--text2:#cbd5e1;--text3:#94a3b8;--accent:#fb7185;--accent2:#fb7185;--shadow:0 8px 30px #0002;}
+#sdp-root{background:transparent!important;color:var(--text)!important;border:0!important;padding:0!important;margin:12px 0!important}#sdp-root .sdp-head{margin:0 0 10px!important}#sdp-root .sdp-tools{margin:8px 0!important}#sdp-root button,#sdp-root input{background:var(--surface2)!important;color:var(--text)!important;border-color:var(--border)!important}#sdp-root #sdp-modal .sdp-dialog{background:var(--surface);color:var(--text)}#sdp-root #sdp-extra{margin:10px 0}#sdp-root #sdp-extra summary{cursor:pointer;color:var(--text2)}#sdp-root #sdp-meter:empty{display:none}#solods-theme-dialog{position:fixed;inset:0;z-index:200000;background:#000a;display:grid;place-items:center;padding:18px}#solods-theme-dialog .solods-theme-box{background:var(--surface);color:var(--text);width:min(680px,98vw);max-height:90vh;overflow:auto;padding:22px;border:1px solid var(--border);border-radius:20px}#solods-theme-dialog .solods-theme-top{display:flex;justify-content:space-between;align-items:center}#solods-theme-dialog .solods-theme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;margin-top:15px}#solods-theme-dialog .solods-theme-grid button{border:1px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text);padding:12px;cursor:pointer;display:flex;align-items:center;gap:8px}#solods-theme-dialog .sdp-swatch{width:22px;height:22px;flex:none;border-radius:50%;background:var(--swatch)}#solods-theme-close{border:0;background:transparent;color:inherit;font-size:20px;cursor:pointer}</style></head>
+<body>
+<div id="uploadProgressContainer"><div id="uploadProgressBar"></div></div>
+<div id="uploadProgressText">Uploading...</div>
+<div id="connectSection" style="display:none;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:520px;width:100%;text-align:center;">
+    <div style="width:100px;height:100px;margin:0 auto 30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#fff;box-shadow:0 20px 60px rgba(99,102,241,0.5);animation:float 3s ease-in-out infinite;">B</div>
+    <style>@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}</style>
+    <h1 style="font-size:32px;font-weight:800;margin-bottom:12px;">Welcome to Box</h1>
+    <p style="font-size:16px;color:var(--text2);margin-bottom:40px;">Your personal cloud space.<br>Connect your Google Drive to get started.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:30px 0">
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">15GB Storage</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">No Subscription</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">Any Device</span>
+      <span style="padding:8px 16px;border:1px solid var(--border);border-radius:50px;font-size:12px;color:var(--text2);background:var(--surface2);">Private</span>
+    </div>
+    <button onclick="connectGoogleDrive()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0;border-radius:16px;padding:18px 40px;font-size:17px;font-weight:700;cursor:pointer;">🔗 Connect Google Drive</button>
+    <p style="font-size:12px;color:var(--text3);margin-top:24px;">One-time login • Lifetime access</p>
+  </div>
+</div>
+<div class="app" id="mainContent" style="display:none;">
+<header>
+  <div class="brand"><div class="brand-icon">B</div><div><h1>Box</h1><p>Personal Cloud</p></div></div>
+  <div class="header-right">
+    <span id="status">Ready</span>
+    <button type="button" id="solods-theme-button" class="theme-select">🎨 Themes</button>
+  </div>
+</header>
+<nav>
+  <button data-tab="photos">📸 Photos</button>
+  <button data-tab="bookmarks">🔖 Bookmarks</button>
+  <button data-tab="notes">📝 Notes</button>
+  <button data-tab="links">🔗 Links</button>
+  <button data-tab="files">📁 Files</button>
+</nav>
+<section id="photos" class="panel"><h2>📸 Photos</h2><div class="filebox" onclick="document.getElementById('photoInput').click()"><div class="filebox-label">Click to choose photos</div><input id="photoInput" type="file" accept="image/*" multiple onchange="showSelectedFiles('photoInput','photoFileNames')"></div><div id="photoFileNames" style="margin-bottom:12px;font-size:13px;color:var(--text2);"></div><button class="primary" onclick="uploadFiles('photoInput','photos')">Upload Photos</button><div id="photosList"></div></section>
+<section id="bookmarks" class="panel"><h2>🔖 Bookmarks</h2><div class="field"><input id="bookmarkTitle" placeholder="Title"></div><div class="field"><input id="bookmarkUrl" placeholder="https://example.com"></div><button class="primary" onclick="saveBookmark()">Save Bookmark</button><div id="bookmarksList"></div></section>
+<section id="notes" class="panel"><h2>📝 Notes</h2><div class="field"><input id="noteTitle" placeholder="Title"></div><div class="field"><textarea id="noteBody" placeholder="Write your note..."></textarea></div><button class="primary" onclick="saveNote()">Save Note</button><div id="notesList"></div></section>
+<section id="links" class="panel"><h2>🔗 Links</h2><div class="field"><input id="linkTitle" placeholder="Title"></div><div class="field"><input id="linkUrl" placeholder="https://example.com"></div><button class="primary" onclick="saveLink()">Save Link</button><div id="linksList"></div></section>
+<section id="files" class="panel"><h2>📁 Files</h2><div class="filebox" onclick="document.getElementById('fileInput').click()"><div class="filebox-label">Click to choose files</div><input id="fileInput" type="file" multiple onchange="showSelectedFiles('fileInput','fileFileNames')"></div><div id="fileFileNames" style="margin-bottom:12px;font-size:13px;color:var(--text2);"></div><button class="primary" onclick="uploadFiles('fileInput','files')">Upload Files</button><div id="filesList"></div></section>
+</div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const GOOGLE_CLIENT_ID = '703347850795-5qf6vc6nkf4jlip1ojlf0hrr36lm409e.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+let API_URL = '';
+let currentTab = "photos";
+let userName = '';
+let accessToken = localStorage.getItem('box_token') || '';
+
+function changeTheme(theme){document.documentElement.setAttribute('data-theme', theme);localStorage.setItem('theme', theme);}
+const savedTheme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+// Theme selection now uses the popup; no removed themeSelect element is accessed.
+
+(async function loadConfig(){
+  const params = new URLSearchParams(window.location.search);
+  userName = params.get('user') || 'test';
+  if (!/^[a-zA-Z0-9_-]{1,60}$/.test(userName)) { showConnect(); setStatus('Invalid customer name'); return; }
+  try{
+    const script = document.createElement('script');
+    script.src = './' + userName + '/config.js';
+    script.onload = () => {
+      API_URL = (typeof USER_CONFIG !== 'undefined' && USER_CONFIG.apiUrl) || '';
+      if (!API_URL && userName === 'sushant') API_URL = 'https://script.google.com/macros/s/AKfycbxYqy7bGgN1iS3vtLcSLaEK6usCwMYKv4zLZ5X_XWDUR4comQcpyT5cFX1-mu892Nqm2w/exec';
+      console.info('Box customer configuration loaded:', userName, Boolean(API_URL));
+       if(!/^https:\/\/script\.google\.com\/macros\/s\//.test(API_URL)){ console.error('Box Apps Script URL missing or invalid for:',userName); showConnect(); setStatus('Backend configuration unavailable'); return; }
+      const savedToken = localStorage.getItem('box_token_' + userName);
+      if(savedToken){
+        accessToken = savedToken;
+        showDashboard();
+      } else {
+        showDashboard(); // Browse immediately, then restore the existing saved login.
+        checkLogin();
+      }
+    };
+    script.onerror = () => {
+      console.error('Box configuration missing for user:', userName);
+      if(userName === 'sushant') {
+        API_URL = 'https://script.google.com/macros/s/AKfycbxYqy7bGgN1iS3vtLcSLaEK6usCwMYKv4zLZ5X_XWDUR4comQcpyT5cFX1-mu892Nqm2w/exec';
+        const saved = localStorage.getItem('box_token_' + userName);
+        if(saved){ accessToken=saved; showDashboard(); } else { showDashboard(); checkLogin(); }
+      } else { showConnect(); setStatus('User configuration unavailable'); }
+    };
+    document.body.appendChild(script);
+  }catch(e){ checkLogin(); }
+})();
+
+function checkLogin(){
+  if(!API_URL){ showConnect(); setStatus('Backend configuration unavailable'); return; }
+  const script = document.createElement('script');
+  const callback = 'cb_login_' + Date.now();
+  window[callback] = (result) => {
+    delete window[callback];
+    script.remove();
+    if(result && result.ok && result.token){
+      accessToken = result.token;
+      localStorage.setItem('box_token_' + userName, result.token);
+      showDashboard();
+    } else {
+      showDashboard();
+    }
+  };
+  script.onerror=()=>{delete window[callback];script.remove();setStatus('Browse mode: session check unavailable');};
+  script.src = API_URL + '?action=checkLogin&user=' + encodeURIComponent(userName) + '&callback=' + callback;
+  document.body.appendChild(script);
+}
+
+function showConnect(){
+  // Public browsing: the dashboard is visible even without an OAuth session.
+  document.getElementById('connectSection').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  if(API_URL) loadItems(currentTab);
+}
+
+function showDashboard(){
+  document.getElementById('connectSection').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  loadItems(currentTab);
+}
+
+function connectGoogleDrive(){
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: GOOGLE_SCOPES,
+    callback: async (response) => {
+      if(response.access_token){
+        accessToken = response.access_token;
+        localStorage.setItem('box_token_' + userName, response.access_token);
+        
+        const form = new URLSearchParams();
+        form.append('action', 'saveToken');
+        form.append('userName', userName);
+        form.append('token', response.access_token);
+        form.append('email', '');
+        
+        try{
+          await fetch(API_URL, {method: 'POST', body: form});
+        }catch(e){}
+        
+        showDashboard();
+      }
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.onclick=()=>{
+    currentTab=btn.dataset.tab;
+    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById(currentTab).classList.add("active");
+    loadItems(currentTab);
+  };
+});
+// Wait for customer config before initial data request.
+document.querySelector('nav button[data-tab="photos"]').classList.add('active');
+document.getElementById('photos').classList.add('active');
+
+function setStatus(t){document.getElementById("status").textContent=t}
+function showSelectedFiles(inputId, displayId){
+  const input=document.getElementById(inputId);
+  const display=document.getElementById(displayId);
+  if(input.files.length===0){display.innerHTML='';return;}
+  let html='';
+  for(let i=0;i<input.files.length;i++){
+    const f=input.files[i];
+    const kb=(f.size/1024).toFixed(1);
+    html+='<div style="padding:6px 0;border-bottom:1px solid var(--border);">📄 '+f.name+' <span style="color:var(--text3);font-size:11px;">('+kb+' KB)</span></div>';
+  }
+  display.textContent=Array.from(input.files).map(f=>f.name+' ('+(f.size/1024).toFixed(1)+' KB)').join(', ');
+}
+
+function formatPremiumDate(dateStr){
+  const d=new Date(dateStr);
+  const day=d.getDate();
+  const month=d.toLocaleString('en-US',{month:'long'});
+  const year=d.getFullYear();
+  const weekday=d.toLocaleString('en-US',{weekday:'long'});
+  let suffix='th';
+  if(day===1||day===21||day===31)suffix='st';
+  else if(day===2||day===22)suffix='nd';
+  else if(day===3||day===23)suffix='rd';
+  const hours=d.getHours();
+  const minutes=d.getMinutes();
+  const ampm=hours>=12?'PM':'AM';
+  const hours12=hours%12||12;
+  const minutesStr=minutes<10?'0'+minutes:minutes;
+  return day+suffix+' '+month+' '+year+', '+weekday+', '+hours12+':'+minutesStr+' '+ampm;
+}
+
+function showUploadProgress(show,percent=0){
+  const c=document.getElementById('uploadProgressContainer');
+  const b=document.getElementById('uploadProgressBar');
+  const t=document.getElementById('uploadProgressText');
+  if(show){c.classList.add('active');b.style.width=percent+'%';t.classList.add('active');t.textContent='Uploading... '+Math.round(percent)+'%';}
+  else{c.classList.remove('active');b.style.width='0%';t.classList.remove('active');}
+}
+
+function loadItems(type) {
+  if(!API_URL){setStatus('Customer configuration missing; browsing unavailable');return;}
+  var callback = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+  var script = document.createElement('script');
+  window[callback] = function(result) {
+    delete window[callback];
+    script.remove();
+    render(type, result.items || []);
+    setStatus('Ready');
+  };
+  script.onerror=()=>{delete window[callback];script.remove();setStatus('Unable to load listing');};
+  script.src = API_URL + '?action=list&user=' + encodeURIComponent(userName) + '&type=' + encodeURIComponent(type) + '&callback=' + callback;
+  document.body.appendChild(script);
+}
+
+function render(type,items){
+  const el=document.getElementById(type+"List");
+  if(!items.length){el.innerHTML='<div class="empty">Nothing saved yet.</div>';return}
+  el.innerHTML=items.map((x,index)=>{
+    const dateStr = x.date || '';
+    const formattedDate = dateStr ? formatPremiumDate(dateStr) : '';
+    if(x.kind==="note"){
+      return `<div class="item" data-file-id="${esc(x.fileId||'')}"><div class="item-title">${esc(x.title)}</div><div>${esc(x.body)}</div><div class="item-meta">${formattedDate}</div><div class="item-actions"><button class="item-action-btn" onclick="renameItem('${type}',${index})">✏️ Rename</button></div></div>`;
+    }
+    if(x.url){
+      return `<div class="item" data-file-id="${esc(x.fileId||'')}"><div class="item-title">${esc(x.title)}</div><a href="${escAttr(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a><div class="item-meta">${formattedDate}</div><div class="item-actions"><button class="item-action-btn" onclick="renameItem('${type}',${index})">✏️ Rename</button></div></div>`;
+    }
+    return `<div class="item" data-file-id="${esc(x.fileId||'')}"><div class="item-title">${esc(x.name||'File')}</div><div class="item-meta">${formattedDate}</div><div class="item-actions"><button class="item-action-btn" onclick="openInDrive('${esc(x.fileId||'')}')">📂 Open in Drive</button><button class="item-action-btn" onclick="renameItem('${type}',${index})">✏️ Rename</button></div></div>`;
+  }).join('');
+}
+
+function openInDrive(fileId) {
+  if (!fileId) {
+    alert('File ID is missing.');
+    return;
+  }
+  window.open(
+    'https://drive.google.com/file/d/' + fileId + '/view',
+    '_blank'
+  );
+}
+  
+  async function renameItem(type,index){
+  const items=document.querySelectorAll('#'+type+'List .item');
+  if(!items[index])return;
+  const item=items[index];
+  const fileId=item.getAttribute('data-file-id')||'';
+  const titleEl=item.querySelector('.item-title');
+  const currentName=titleEl?titleEl.textContent.trim():'';
+  const baseName=currentName.replace(/\.[^.]+$/,'');
+  const extension=currentName.includes('.')?currentName.split('.').pop():'';
+  const newName=prompt('Enter new name:',baseName);
+  if(!newName||!newName.trim())return;
+  const finalName=extension?newName.trim()+'.'+extension:newName.trim();
+  setStatus("Renaming...");
+  const form=new URLSearchParams();
+  form.append('action','rename');
+  form.append('fileId',fileId);
+  form.append('newName',finalName);
+  try{
+    const r=await fetch(API_URL,{method:'POST',body:form});
+    const result=await r.json();
+    if(result.ok){setStatus("Renamed!");loadItems(type);}
+    else{setStatus("Failed");alert("Rename failed");}
+  }catch(e){setStatus("Error");}
+}
+
+async function saveBookmark(){
+  const title=document.getElementById("bookmarkTitle").value.trim();
+  const url=document.getElementById("bookmarkUrl").value.trim();
+  if(!title||!url)return alert("Enter title and URL.");
+  setStatus("Saving...");
+  const form=new URLSearchParams();
+  form.append('action','saveText');
+  form.append('userName',userName);
+  form.append('type','bookmarks');
+  form.append('title',title);
+  form.append('url',url);
+  try{await fetch(API_URL,{method:'POST',body:form});document.getElementById("bookmarkTitle").value="";document.getElementById("bookmarkUrl").value="";await loadItems("bookmarks");}
+  catch(e){setStatus("Save error")}
+}
+
+async function saveLink(){
+  const title=document.getElementById("linkTitle").value.trim();
+  const url=document.getElementById("linkUrl").value.trim();
+  if(!title||!url)return alert("Enter title and URL.");
+  setStatus("Saving...");
+  const form=new URLSearchParams();
+  form.append('action','saveText');
+  form.append('userName',userName);
+  form.append('type','links');
+  form.append('title',title);
+  form.append('url',url);
+  try{await fetch(API_URL,{method:'POST',body:form});document.getElementById("linkTitle").value="";document.getElementById("linkUrl").value="";await loadItems("links");}
+  catch(e){setStatus("Save error")}
+}
+
+async function saveNote(){
+  const title=document.getElementById("noteTitle").value.trim();
+  const body=document.getElementById("noteBody").value.trim();
+  if(!title||!body)return alert("Enter title and note.");
+  setStatus("Saving...");
+  const form=new URLSearchParams();
+  form.append('action','saveText');
+  form.append('userName',userName);
+  form.append('type','notes');
+  form.append('title',title);
+  form.append('body',body);
+  try{await fetch(API_URL,{method:'POST',body:form});document.getElementById("noteTitle").value="";document.getElementById("noteBody").value="";await loadItems("notes");}
+  catch(e){setStatus("Save error")}
+}
+
+async function uploadFiles(inputId,type){
+  const files=[...document.getElementById(inputId).files];
+  if(!files.length)return alert("Choose a file first.");
+  const total=files.length;let done=0;
+  for(const file of files){
+    if(file.size>20*1024*1024){alert(file.name+" is over 20MB");continue;}
+    showUploadProgress(true,(done/total)*100);
+    setStatus("Uploading "+file.name+"...");
+    const base64=await toBase64(file);
+    const form=new URLSearchParams();
+    form.append('action','upload');
+    form.append('userName',userName);
+    form.append('type',type);
+    form.append('name',file.name);
+    form.append('mimeType',file.type||'application/octet-stream');
+    form.append('data',base64);
+    try{await fetch(API_URL,{method:'POST',body:form});}
+    catch(e){alert("Upload failed: "+file.name);}
+    done++;
+    showUploadProgress(true,(done/total)*100);
+  }
+  showUploadProgress(false);
+  document.getElementById(inputId).value="";
+  await loadItems(type);
+  setStatus("Ready");
+}
+
+function toBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(String(r.result).split(",")[1]);
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function escAttr(s){return esc(s)}
+</script>
+
+<script>
+window.SoloDSThemePalette = {"midnight": ["#0b1020", "#161e34", "#818cf8"], "snow": ["#f7f9ff", "#ffffff", "#6366f1"], "ocean": ["#091d33", "#12304b", "#38bdf8"], "forest": ["#0b2219", "#153b2a", "#4ade80"], "sunset": ["#2c1520", "#442333", "#fb923c"], "rose": ["#2a1321", "#432036", "#fb7185"], "gold": ["#231b0e", "#382c16", "#fbbf24"], "arctic": ["#eaf7ff", "#ffffff", "#0891b2"], "neon": ["#0b1020", "#181e31", "#22d3ee"], "candy": ["#2c1433", "#422048", "#f472b6"], "mint": ["#0d2826", "#17413b", "#2dd4bf"], "lavender": ["#20152f", "#342247", "#c4b5fd"], "emerald": ["#082a24", "#16443a", "#34d399"], "ruby": ["#2b1018", "#431c28", "#fb7185"], "coffee": ["#251b17", "#3c2b24", "#d6a77a"], "peach": ["#fff1e9", "#fffaf5", "#ea580c"], "slate": ["#111827", "#1f2937", "#94a3b8"], "solar": ["#fffbea", "#ffffff", "#d97706"], "royal": ["#161337", "#29235a", "#a78bfa"], "coral": ["#251a20", "#3e2831", "#fb7185"]};
+window.SoloDSApplyTheme=function(name){if(!window.SoloDSThemePalette[name])return;document.documentElement.setAttribute('data-theme',name);localStorage.setItem('theme',name)};
+document.addEventListener('DOMContentLoaded',()=>{
+ const b=document.getElementById('solods-theme-button');if(b)b.addEventListener('click',()=>{if(window.SoloDSProShowThemes)window.SoloDSProShowThemes()});
+ const chosen=localStorage.getItem('theme');if(window.SoloDSThemePalette[chosen])window.SoloDSApplyTheme(chosen);
+});
+</script><script src="./solods-pro.js" defer></script>
+</body>
+</html>
