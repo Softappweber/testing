@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Box Admin</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#131318;--surface2:#1a1a22;--border:#23232e;--text:#f5f5f7;--text2:#a1a1aa;--accent:#6366f1;--accent2:#8b5cf6;--success:#10b981;--danger:#ef4444;--warning:#f59e0b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:40px 20px}
+.container{max-width:700px;margin:auto}
+h1{font-size:28px;font-weight:800;margin-bottom:8px}
+.subtitle{color:var(--text2);font-size:14px;margin-bottom:30px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px;margin-bottom:20px}
+.card h2{font-size:18px;font-weight:700;margin-bottom:20px}
+.field{margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px}
+input:focus{outline:none;border-color:var(--accent)}
+.btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.3s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.result{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:20px}
+.result.show{display:block}
+.result-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;gap:10px}
+.result-item:last-child{border-bottom:0}
+.result-item .label{color:var(--text2);white-space:nowrap}
+.result-item .value{font-weight:600;word-break:break-all;text-align:right}
+.copy-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--accent);cursor:pointer;font-size:11px;white-space:nowrap}
+.status-log{background:var(--surface2);border-radius:10px;padding:16px;margin-top:20px;max-height:300px;overflow-y:auto;font-size:12px;line-height:1.8}
+.log-entry{color:var(--text2)}
+.log-entry.success{color:var(--success)}
+.log-entry.error{color:var(--danger)}
+.log-entry.warning{color:var(--warning)}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📦 Box Admin</h1>
+  <p class="subtitle">Customer create karo — sab automatic</p>
+  
+  <div class="card">
+    <h2>Settings</h2>
+    <div class="field">
+      <label>Script URL (Deploy URL)</label>
+      <input id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="field">
+      <label>GitHub Token (classic)</label>
+      <input id="githubToken" type="password" placeholder="ghp_...">
+    </div>
+    <div class="field">
+      <label>GitHub Repo</label>
+      <input id="githubRepo" value="softappweber/box">
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>Create Customer</h2>
+    <div class="field">
+      <label>Customer Name (username)</label>
+      <input id="customerName" placeholder="rahul">
+    </div>
+    <div class="field">
+      <label>Customer Email</label>
+      <input id="customerEmail" placeholder="rahul@gmail.com">
+    </div>
+    <button class="btn" id="createBtn" onclick="createCustomer()">🚀 Create Customer</button>
+    <div class="status-log" id="statusLog"><div class="log-entry">Ready.</div></div>
+    <div class="result" id="result"><h3>✅ Done!</h3><div id="resultItems"></div></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('scriptUrl').value = localStorage.getItem('box_script_url') || '';
+document.getElementById('githubToken').value = localStorage.getItem('box_github_token') || '';
+document.getElementById('githubRepo').value = localStorage.getItem('box_github_repo') || 'softappweber/box';
+
+function log(msg, type){
+  type = type || '';
+  var el = document.getElementById('statusLog');
+  var div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  div.textContent = '> ' + msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function copyText(text){
+  navigator.clipboard.writeText(text).then(function(){
+    alert('Copied!');
+  });
+}
+
+async function createCustomer(){
+  var SCRIPT_URL = document.getElementById('scriptUrl').value.trim();
+  var GITHUB_TOKEN = document.getElementById('githubToken').value.trim();
+  var GITHUB_REPO = document.getElementById('githubRepo').value.trim() || 'softappweber/box';
+  var name = document.getElementById('customerName').value.trim().toLowerCase();
+  var email = document.getElementById('customerEmail').value.trim();
+  
+  localStorage.setItem('box_script_url', SCRIPT_URL);
+  localStorage.setItem('box_github_token', GITHUB_TOKEN);
+  localStorage.setItem('box_github_repo', GITHUB_REPO);
+  
+  if(!SCRIPT_URL || !GITHUB_TOKEN || !name || !email){
+    alert('Sab fields bharo');
+    return;
+  }
+  
+  var btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  
+  log('Starting: ' + name);
+  
+  // STEP 1
+  log('Creating Sheet + Folder...');
+  try{
+    var form = new URLSearchParams();
+    form.append('action','createUser');
+    form.append('userName',name);
+    form.append('email',email);
+    var r1 = await fetch(SCRIPT_URL,{method:'POST',body:form});
+    var result1 = await r1.json();
+    if(result1.ok){
+      log('Sheet + Folder created', 'success');
+    } else {
+      log('Script error: ' + (result1.error || 'unknown'), 'error');
+    }
+  }catch(e1){
+    log('Script failed: ' + e1.message, 'error');
+  }
+  
+  // STEP 2
+  log('Creating GitHub folder...');
+  try{
+    var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Box</title></head><body><script>window.location.replace("../dashboard.html?user=' + name + '");<\/script></body></html>';
+    var r2 = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + name + '/index.html',{
+      method:'PUT',
+      headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({message:'Create '+name, content:btoa(unescape(encodeURIComponent(htmlContent)))})
+    });
+    if(r2.ok){
+      log('GitHub index.html created', 'success');
+    } else {
+      log('GitHub error: ' + r2.status, 'error');
+    }
+  }catch(e2){
+    log('GitHub failed: ' + e2.message, 'error');
+  }
+  
+  // STEP 3
+  log('Creating config.js...');
+  try{
+    var configContent = 'const USER_CONFIG={name:"'+name+'",apiUrl:"'+SCRIPT_URL+'"};';
+    var r3 = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + name + '/config.js',{
+      method:'PUT',
+      headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({message:'Config '+name, content:btoa(unescape(encodeURIComponent(configContent)))})
+    });
+    if(r3.ok){
+      log('config.js created', 'success');
+    } else {
+      log('config.js error: ' + r3.status, 'error');
+    }
+  }catch(e3){
+    log('config.js failed: ' + e3.message, 'error');
+  }
+  
+  // STEP 4
+  log('Updating links.json...');
+  try{
+    var linksR = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/links.json',{
+      headers:{'Authorization':'Bearer '+GITHUB_TOKEN}
+    });
+    if(linksR.ok){
+      var linksData = await linksR.json();
+      var currentLinks = JSON.parse(decodeURIComponent(escape(atob(linksData.content))));
+      currentLinks[name] = 'https://softappweber.github.io/box/dashboard.html?user=' + name;
+      var updateR = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/links.json',{
+        method:'PUT',
+        headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({message:'Add '+name, content:btoa(unescape(encodeURIComponent(JSON.stringify(currentLinks,null,2)))), sha:linksData.sha})
+      });
+      if(updateR.ok){
+        log('links.json updated', 'success');
+      } else {
+        log('links.json update error', 'error');
+      }
+    } else {
+      log('links.json not found - creating new', 'warning');
+      var newLinks = {};
+      newLinks[name] = 'https://softappweber.github.io/box/dashboard.html?user=' + name;
+      var createR = await fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/links.json',{
+        method:'PUT',
+        headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({message:'Create links.json', content:btoa(unescape(encodeURIComponent(JSON.stringify(newLinks,null,2))))})
+      });
+      log(createR.ok ? 'links.json created' : 'links.json failed', createR.ok ? 'success' : 'error');
+    }
+  }catch(e4){
+    log('links.json failed: ' + e4.message, 'error');
+  }
+  
+  // STEP 5
+  log('Creating TinyURL...');
+  var githubUrl = 'https://softappweber.github.io/box/' + name + '/';
+  var tinyUrl = '';
+  try{
+    var tinyR = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(githubUrl));
+    tinyUrl = await tinyR.text();
+    if(tinyUrl && tinyUrl.indexOf('http') === 0){
+      log('TinyURL: ' + tinyUrl, 'success');
+    } else {
+      log('TinyURL failed - manual karo', 'warning');
+    }
+  }catch(e5){
+    log('TinyURL CORS - manual karo', 'warning');
+  }
+  
+  // FINAL
+  btn.disabled = false;
+  btn.textContent = 'Create Customer';
+  log('Customer ready: ' + name, 'success');
+  
+  document.getElementById('result').classList.add('show');
+  document.getElementById('resultItems').innerHTML = 
+    '<div class="result-item"><span class="label">GitHub URL</span><span class="value">' + githubUrl + '</span><button class="copy-btn" onclick="copyText(\'' + githubUrl + '\')">Copy</button></div>' +
+    (tinyUrl ? '<div class="result-item"><span class="label">TinyURL</span><span class="value">' + tinyUrl + '</span><button class="copy-btn" onclick="copyText(\'' + tinyUrl + '\')">Copy</button></div>' : '') +
+    '<div class="result-item"><span class="label">Email</span><span class="value">' + email + '</span></div>';
+}
+</script>
+</body>
+</html>
