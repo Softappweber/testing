@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>soloDS Box — Your Personal Cloud Space</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0a0a0f;
+  color:#f5f5f7;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.navbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:15px 40px;
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(10,10,15,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;}
+.nav-logo span{font-size:28px;filter:drop-shadow(0 5px 10px rgba(139,92,246,0.5));}
+.nav-text{font-size:17px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#c4b5fd,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-cta{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  color:#fff;border:0;padding:10px 20px;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;
+  transition:all 0.3s;
+}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(99,102,241,0.4)}
+.hero{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:120px 20px 60px;position:relative;
+}
+.hero::before{
+  content:'';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:1000px;height:1000px;
+  background:radial-gradient(circle,rgba(99,102,241,0.1),transparent 70%);
+  pointer-events:none;
+}
+.hero-content{max-width:900px;position:relative;z-index:1}
+.hero-logo{
+  width:120px;height:120px;margin:0 auto 25px;
+  display:flex;align-items:center;justify-content:center;
+}
+.hero-logo span{
+  font-size:90px;
+  filter:drop-shadow(0 25px 40px rgba(139,92,246,0.7)) drop-shadow(0 10px 20px rgba(99,102,241,0.5)) drop-shadow(0 0 50px rgba(167,139,250,0.4));
+  transform:perspective(500px) rotateX(5deg) rotateY(-5deg);
+  animation:heroFloat 3s ease-in-out infinite;
+  display:block;
+}
+@keyframes heroFloat{0%,100%{transform:translateY(0) rotateX(5deg) rotateY(-5deg)}50%{transform:translateY(-15px) rotateX(10deg) rotateY(5deg)}}
+.hero-badge{
+  display:inline-block;padding:8px 18px;
+  border:1px solid rgba(139,92,246,0.4);
+  border-radius:50px;font-size:12px;color:#a78bfa;
+  margin-bottom:20px;letter-spacing:1px;text-transform:uppercase;font-weight:600;
+}
+.hero h1{
+  font-size:58px;font-weight:900;line-height:1.1;
+  letter-spacing:-2px;margin-bottom:16px;
+  background:linear-gradient(135deg,#c4b5fd,#8b5cf6,#6366f1);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero p{font-size:18px;color:#a1a1aa;line-height:1.7;margin-bottom:35px}
+.hero-buttons{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-primary{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  color:#fff;border:0;padding:16px 36px;border-radius:14px;
+  font-size:17px;font-weight:700;cursor:pointer;text-decoration:none;
+  transition:all 0.3s;
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 20px 50px rgba(99,102,241,0.5)}
+.btn-ghost{
+  background:transparent;color:#f5f5f7;
+  border:1px solid #2a2a35;padding:16px 36px;border-radius:14px;
+  font-size:17px;font-weight:500;cursor:pointer;text-decoration:none;
+  transition:all 0.3s;
+}
+.btn-ghost:hover{border-color:#6366f1;color:#a78bfa}
+.use-cases{padding:80px 40px;max-width:1200px;margin:auto}
+.section-title{text-align:center;font-size:36px;font-weight:800;margin-bottom:12px;letter-spacing:-1px;background:linear-gradient(135deg,#f5f5f7,#a1a1aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.section-sub{text-align:center;color:#6b6b76;font-size:16px;margin-bottom:50px}
+.use-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.use-card{background:#131318;border:1px solid #23232e;border-radius:18px;padding:30px;transition:all 0.3s}
+.use-card:hover{border-color:#8b5cf6;transform:translateY(-6px);box-shadow:0 20px 50px rgba(139,92,246,0.15)}
+.use-icon{font-size:40px;margin-bottom:16px}
+.use-card h3{font-size:18px;font-weight:700;margin-bottom:10px}
+.use-card p{font-size:14px;color:#6b6b76;line-height:1.7}
+.scenarios{padding:80px 40px;max-width:1200px;margin:auto}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.scenario-card{background:#131318;border:1px solid #23232e;border-radius:18px;padding:30px;transition:all 0.3s;border-left:3px solid #8b5cf6}
+.scenario-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(139,92,246,0.15)}
+.scenario-icon{font-size:36px;margin-bottom:14px}
+.scenario-card h3{font-size:17px;font-weight:700;margin-bottom:10px}
+.scenario-card p{font-size:14px;color:#6b6b76;line-height:1.7}
+.pricing{padding:80px 40px;max-width:500px;margin:auto;text-align:center}
+.price-card{background:#131318;border:2px solid #8b5cf6;border-radius:24px;padding:50px 40px;position:relative}
+.price-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:6px 20px;border-radius:50px;font-size:13px;font-weight:700}
+.price{font-size:60px;font-weight:900;background:linear-gradient(135deg,#c4b5fd,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.price span{font-size:20px;font-weight:400;color:#6b6b76}
+.price-note{color:#6b6b76;font-size:14px;margin:20px 0 30px}
+.feature-list{list-style:none;margin-bottom:40px;text-align:left}
+.feature-list li{padding:12px 0;color:#a1a1aa;font-size:15px;border-bottom:1px solid #1a1a22}
+.feature-list li:last-child{border-bottom:0}
+.feature-list li::before{content:'✓';color:#8b5cf6;font-weight:700;margin-right:10px}
+.footer{text-align:center;padding:40px;border-top:1px solid #1a1a22;margin-top:60px}
+.footer p{color:#6b6b76;font-size:12px;margin-top:8px;line-height:1.8}
+.solods{font-weight:700;color:#a78bfa;font-size:14px}
+@media(max-width:768px){.hero h1{font-size:34px}.use-cases{padding:40px 20px}.section-title{font-size:26px}}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo">
+    <span>📦</span>
+    <span class="nav-text">soloDS Box</span>
+  </div>
+  <a href="https://softappweber.github.io/sushantcoder" class="nav-cta">Get Box — ₹299</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-logo"><span>📦</span></div>
+    <div class="hero-badge">One-Time Setup • Lifetime Access</div>
+    <h1>Your Personal Cloud.<br>Beautifully Simple.</h1>
+    <p>Store photos, notes, bookmarks, links and files.<br>Access from any device. No subscription. Ever.</p>
+    <div class="hero-buttons">
+      <a href="https://softappweber.github.io/sushantcoder" class="btn-primary">Get Your Box — ₹299</a>
+      <a href="#howitworks" class="btn-ghost">See How It Works</a>
+    </div>
+    <div style="margin-top:20px;text-align:center;">
+      <a href="#usecases" style="color:#a78bfa;text-decoration:none;font-size:15px;font-weight:500;border-bottom:1px solid #8b5cf6;padding-bottom:3px;transition:all 0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#a78bfa'">Why Use It? →</a>
+    </div>
+  </div>
+</section>
+
+<section class="use-cases" id="usecases">
+  <h2 class="section-title">Made For Your Life</h2>
+  <p class="section-sub">One Box. Endless possibilities.</p>
+  <div class="use-grid">
+    <div class="use-card"><div class="use-icon">📸</div><h3>Photo Memories</h3><p>Store all your important photos in one secure place. Auto-compression saves space without losing quality.</p></div>
+    <div class="use-card"><div class="use-icon">📝</div><h3>Quick Notes</h3><p>Write down ideas, reminders, or anything important. Your notes are always with you, on any device.</p></div>
+    <div class="use-card"><div class="use-icon">🔖</div><h3>Bookmark Library</h3><p>Save articles, recipes, or important links. Never lose a bookmark again. Everything organized.</p></div>
+    <div class="use-card"><div class="use-icon">🔗</div><h3>Link Collection</h3><p>Keep all your important URLs in one place. Access them from anywhere, anytime.</p></div>
+    <div class="use-card"><div class="use-icon">📁</div><h3>File Storage</h3><p>Upload documents, PDFs, ZIP files and more. Your files follow you everywhere.</p></div>
+    <div class="use-card"><div class="use-icon">🔒</div><h3>100% Private</h3><p>Your data stays in your own Google Drive. Only you have access. Complete privacy guaranteed.</p></div>
+    <div class="use-card"><div class="use-icon">📤</div><h3>Box-to-Box Share</h3><p>Share files from your Box to another Box. No WhatsApp, Email, or Telegram needed. Just send your link.</p></div>
+    <div class="use-card"><div class="use-icon">🔄</div><h3>Device-to-Device</h3><p>Mobile to Laptop. Laptop to Desktop. Desktop to Mobile. Files move freely between YOUR devices.</p></div>
+  </div>
+</section>
+
+<section class="scenarios" id="howitworks">
+  <h2 class="section-title">Works Everywhere. For Everyone.</h2>
+  <p class="section-sub">No app needed. Just open your link. That's it.</p>
+  <div class="scenario-grid">
+    <div class="scenario-card"><div class="scenario-icon">📱</div><h3>Phone Lost? No Problem.</h3><p>Your files are safe. Just open Box on any device and everything is there.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">📸</div><h3>Friend's Phone? Works.</h3><p>Click a photo on any phone, upload to your Box, and it's saved to your Drive instantly.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">💻</div><h3>Office Laptop? Seamless.</h3><p>Type notes on office computer. They go straight to your personal Box. No installation.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">📱</div><h3>Tablet? Perfect.</h3><p>Save bookmarks and links while browsing on tablet. Access them anywhere later.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">🔗</div><h3>Any Device. Anywhere.</h3><p>One simple URL. Open it on any device in the world. Your Box is always there.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">⚡</div><h3>No App. No Install.</h3><p>Works directly in browser. No downloads, no updates. Just pure simplicity.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">📤</div><h3>Share Box-to-Box</h3><p>Send files to another Box user free. No email, WhatsApp, or Telegram. Just share your link and they upload.</p></div>
+    <div class="scenario-card"><div class="scenario-icon">🔄</div><h3>Mobile ↔ Desktop</h3><p>Click photo on mobile, open on desktop. Type note on laptop, read on tablet. Seamless sync between your devices.</p></div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <h2 class="section-title" style="margin-bottom:40px;">Simple. Honest. Affordable.</h2>
+  <div class="price-card">
+    <div class="price-badge">LIFETIME DEAL</div>
+    <div class="price">₹299 <span>one-time</span></div>
+    <p class="price-note">No monthly fees. No hidden charges. Pay once, use forever.</p>
+    <ul class="feature-list">
+      <li>15GB Storage Space</li>
+      <li>Photos, Notes, Bookmarks, Links & Files</li>
+      <li>Works on Any Device</li>
+      <li>10 Premium Themes</li>
+      <li>One-Time Google Login</li>
+      <li>Box-to-Box File Sharing</li>
+      <li>Device-to-Device Sync</li>
+      <li>Lifetime Access</li>
+      <li>Free Updates</li>
+    </ul>
+    <a href="https://softappweber.github.io/sushantcoder" class="btn-primary">Get Your Box Now</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>soloDS Box — Your Personal Cloud Space</p>
+  <p class="solods">— soloDS</p>
+  <p>A Software Company</p>
+</footer>
+
+<script>
+(function(){
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxYqy7bGgN1iS3vtLcSLaEK6usCwMYKv4zLZ5X_XWDUR4comQcpyT5cFX1-mu892Nqm2w/exec';
+  
+  var ua = navigator.userAgent;
+  var device = /Mobile|Android|iPhone/i.test(ua) ? 'Mobile' : 'Desktop';
+  var browser = 'Unknown';
+  if(/Chrome/i.test(ua)) browser = 'Chrome';
+  else if(/Firefox/i.test(ua)) browser = 'Firefox';
+  else if(/Safari/i.test(ua)) browser = 'Safari';
+  else if(/Edge/i.test(ua)) browser = 'Edge';
+  
+  var os = 'Unknown';
+  if(/Windows/i.test(ua)) os = 'Windows';
+  else if(/Mac/i.test(ua)) os = 'MacOS';
+  else if(/Linux/i.test(ua)) os = 'Linux';
+  else if(/Android/i.test(ua)) os = 'Android';
+  else if(/iPhone|iPad/i.test(ua)) os = 'iOS';
+  
+  fetch('https://ipapi.co/json/')
+    .then(function(r){ return r.json(); })
+    .then(function(geo){
+      var form = new URLSearchParams();
+      form.append('action', 'track_visit');
+      form.append('data', JSON.stringify({
+        page: 'landing',
+        url: window.location.href,
+        referrer: document.referrer || 'direct',
+        ip: geo.ip || 'Unknown',
+        device: device,
+        browser: browser,
+        os: os,
+        location: (geo.city || '') + ', ' + (geo.country_name || '')
+      }));
+      
+      return fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString()
+      });
+    })
+    .catch(function(){
+      var form = new URLSearchParams();
+      form.append('action', 'track_visit');
+      form.append('data', JSON.stringify({
+        page: 'landing',
+        url: window.location.href,
+        referrer: document.referrer || 'direct',
+        ip: 'Unknown',
+        device: device,
+        browser: browser,
+        os: os,
+        location: 'Unknown'
+      }));
+      
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString()
+      });
+    });
+})();
+</script>
+
+</body>
+</html>
