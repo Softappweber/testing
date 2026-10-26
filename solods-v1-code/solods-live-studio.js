@@ -1,36 +1,27 @@
 
-/*
+/*!
  * soloDS Box Pro — Live Studio
- * Photo • Voice • Video
- * Standalone module — no external libraries
+ * Photo / Voice / Video
+ * Standalone JavaScript module
  *
- * Sidebar: #sds-modern-vertical
- * Placement: immediately below File Drop
- * Upload API: uploadFiles(inputId, type)
+ * Existing dashboard:
+ *   Sidebar: #sds-modern-vertical
+ *   Upload: uploadFiles(inputId, type)
+ *
+ * No external dependencies.
  */
 (() => {
   "use strict";
 
-  if (window.__solodsLiveStudio) return;
-  window.__solodsLiveStudio = true;
+  const VERSION = "3.0.0";
+  const ROOT = "sls3";
+  const LIMIT = 20 * 1024 * 1024;
 
-  const $ = (s, root = document) => root.querySelector(s);
+  if (window.__solodsLiveStudioV3) return;
+  window.__solodsLiveStudioV3 = true;
 
-  const FILTERS = {
-    normal: "none",
-    warm: "sepia(.3) saturate(1.4)",
-    vintage: "sepia(.7) contrast(.9)",
-    mono: "grayscale(1)",
-    noir: "grayscale(1) contrast(1.6)",
-    cool: "hue-rotate(25deg) saturate(1.2)",
-    vivid: "saturate(2) contrast(1.15)",
-    dream: "brightness(1.15) saturate(1.3)",
-    sunset: "sepia(.4) hue-rotate(-25deg) saturate(1.7)",
-    retro: "sepia(.4) hue-rotate(45deg)",
-    fade: "contrast(.8) brightness(1.1)",
-    bright: "brightness(1.25)",
-    dramatic: "contrast(1.5)"
-  };
+  const $ = (selector, root = document) =>
+    root.querySelector(selector);
 
   const state = {
     tab: "photo",
@@ -40,41 +31,107 @@
     photo: null,
     audio: null,
     video: null,
-    source: null,
-    strokes: [],
-    drawing: false,
-    currentStroke: null,
+    photoSource: null,
+    cameraMode: "user",
     filter: "normal",
-    camera: "user",
     timer: null,
     started: 0,
-    frameId: null,
-    extraTracks: [],
-    busy: false
+    recording: false,
+    busy: false,
+    drawing: false,
+    strokes: [],
+    currentStroke: null,
+    renderLoop: null,
+    videoOutput: null,
+    audioContext: null,
+    videoAudioStream: null,
+    photoObjectUrl: null,
+    previewUrls: new Map()
   };
 
-  function message(text, error = false) {
-    const el = $("#sls-message");
+  const FILTERS = {
+    normal: "none",
+    vivid: "saturate(1.65) contrast(1.12)",
+    warm: "sepia(.22) saturate(1.25)",
+    cool: "hue-rotate(18deg) saturate(1.15)",
+    vintage: "sepia(.65) contrast(.9)",
+    mono: "grayscale(1)",
+    noir: "grayscale(1) contrast(1.55)",
+    cinematic: "contrast(1.25) saturate(.8)",
+    dreamy: "brightness(1.12) saturate(1.2)",
+    sunset: "sepia(.35) hue-rotate(-18deg)",
+    bright: "brightness(1.2)",
+    soft: "contrast(.85) brightness(1.08)"
+  };
+
+  function status(text, error = false) {
+    const el = $("#sls3-status");
     if (!el) return;
+
     el.textContent = text;
-    el.style.color = error ? "#ff9cab" : "#91efd0";
+    el.classList.toggle("error", error);
   }
 
-  function stopStream() {
-    if (state.stream) {
-      state.stream.getTracks().forEach(t => t.stop());
-      state.stream = null;
+  function safeError(error) {
+    const name = error?.name || "";
+
+    if (name === "NotAllowedError") {
+      return "Camera or microphone permission was denied. Check browser permissions.";
     }
 
-    ["#sls-camera", "#sls-video-preview"].forEach(id => {
-      const el = $(id);
-      if (el) el.srcObject = null;
+    if (name === "NotFoundError") {
+      return "No suitable camera or microphone was found.";
+    }
+
+    if (name === "NotReadableError") {
+      return "The device could not be started. Close other apps using it and try again.";
+    }
+
+    if (name === "OverconstrainedError") {
+      return "That camera is unavailable. Select another camera.";
+    }
+
+    if (name === "SecurityError") {
+      return "Camera and microphone access requires a secure HTTPS page.";
+    }
+
+    return error?.message || String(error);
+  }
+
+  function releaseStream(stream) {
+    if (!stream) return;
+
+    stream.getTracks().forEach(track => {
+      try {
+        track.stop();
+      } catch (_) {}
     });
   }
 
-  function stopExtraTracks() {
-    state.extraTracks.forEach(t => t.stop());
-    state.extraTracks = [];
+  function stopCamera() {
+    releaseStream(state.stream);
+    state.stream = null;
+
+    for (const id of [
+      "#sls3-photo-video",
+      "#sls3-video-camera"
+    ]) {
+      const el = $(id);
+      if (el) el.srcObject = null;
+    }
+  }
+
+  function stopVideoRendering() {
+    if (state.renderLoop !== null) {
+      cancelAnimationFrame(state.renderLoop);
+      state.renderLoop = null;
+    }
+
+    releaseStream(state.videoOutput);
+    state.videoOutput = null;
+
+    releaseStream(state.videoAudioStream);
+    state.videoAudioStream = null;
   }
 
   function stopTimer() {
@@ -82,25 +139,36 @@
     state.timer = null;
   }
 
-  function startTimer(id) {
+  function startTimer(elementId) {
     stopTimer();
+
     state.started = Date.now();
 
-    state.timer = setInterval(() => {
-      const seconds = Math.floor(
+    const update = () => {
+      const elapsed = Math.floor(
         (Date.now() - state.started) / 1000
       );
 
-      const m = String(Math.floor(seconds / 60))
-        .padStart(2, "0");
-      const s = String(seconds % 60).padStart(2, "0");
+      const minutes = String(
+        Math.floor(elapsed / 60)
+      ).padStart(2, "0");
 
-      const el = $("#" + id);
-      if (el) el.textContent = `${m}:${s}`;
-    }, 250);
+      const seconds = String(
+        elapsed % 60
+      ).padStart(2, "0");
+
+      const element = $("#" + elementId);
+
+      if (element) {
+        element.textContent = `${minutes}:${seconds}`;
+      }
+    };
+
+    update();
+    state.timer = setInterval(update, 250);
   }
 
-  function cleanup() {
+  function stopRecorder() {
     if (
       state.recorder &&
       state.recorder.state === "recording"
@@ -109,61 +177,55 @@
     }
 
     stopTimer();
-    stopStream();
-    stopExtraTracks();
-
-    if (state.frameId !== null) {
-      cancelAnimationFrame(state.frameId);
-      state.frameId = null;
-    }
-  }
-
-  function openStudio() {
-    $("#sls-overlay").hidden = false;
-    message("Choose Photo, Voice or Video to begin.");
   }
 
   function closeStudio() {
-    cleanup();
-    $("#sls-overlay").hidden = true;
-  }
-
-  function activeFile() {
-    if (state.tab === "photo") return state.photo;
-    if (state.tab === "voice") return state.audio;
-    return state.video;
-  }
-
-  function switchTab(tab) {
-    if (
-      state.recorder &&
-      state.recorder.state === "recording"
-    ) {
-      message("Stop recording before switching tabs.", true);
+    if (state.recording) {
+      status("Stop recording before closing.", true);
       return;
     }
 
-    stopStream();
-    state.tab = tab;
+    stopCamera();
+    stopVideoRendering();
+    stopTimer();
 
-    document.querySelectorAll(".sls-tab").forEach(btn => {
-      btn.classList.toggle(
-        "active",
-        btn.dataset.tab === tab
-      );
-    });
-
-    document.querySelectorAll(".sls-panel").forEach(panel => {
-      panel.classList.toggle(
-        "active",
-        panel.id === "sls-" + tab
-      );
-    });
-
-    message(`${tab.toUpperCase()} Studio ready.`);
+    $("#sls3-overlay").hidden = true;
   }
 
-  function preferredMime(kind) {
+  function openStudio() {
+    $("#sls3-overlay").hidden = false;
+    status("Choose Photo, Voice or Video.");
+  }
+
+  function selectTab(tab) {
+    if (state.recording) {
+      status("Stop recording before changing tools.", true);
+      return;
+    }
+
+    stopCamera();
+    stopVideoRendering();
+
+    state.tab = tab;
+
+    document.querySelectorAll(".sls3-tab").forEach(el => {
+      el.classList.toggle(
+        "active",
+        el.dataset.tab === tab
+      );
+    });
+
+    document.querySelectorAll(".sls3-panel").forEach(el => {
+      el.classList.toggle(
+        "active",
+        el.dataset.panel === tab
+      );
+    });
+
+    status(`${tab.toUpperCase()} Studio ready.`);
+  }
+
+  function mimeFor(kind) {
     if (!window.MediaRecorder) return "";
 
     const options = kind === "audio"
@@ -179,15 +241,59 @@
           "video/mp4"
         ];
 
-    return options.find(
-      type => MediaRecorder.isTypeSupported(type)
+    return options.find(type =>
+      MediaRecorder.isTypeSupported(type)
     ) || "";
   }
 
-  async function refreshCameras() {
-    if (!navigator.mediaDevices?.enumerateDevices) {
-      throw new Error("Camera enumeration unavailable.");
+  function extension(type, kind) {
+    if (type.includes("mp4")) {
+      return kind === "audio" ? "m4a" : "mp4";
     }
+
+    if (type.includes("wav")) return "wav";
+
+    return "webm";
+  }
+
+  function makeFile(blob, prefix, kind) {
+    const type = blob.type ||
+      (kind === "audio" ? "audio/webm" : "video/webm");
+
+    return new File(
+      [blob],
+      `${prefix}-${Date.now()}.${extension(type, kind)}`,
+      { type }
+    );
+  }
+
+  function setPreview(selector, file) {
+    const el = $(selector);
+    if (!el) return;
+
+    const old = state.previewUrls.get(selector);
+
+    if (old) URL.revokeObjectURL(old);
+
+    const url = URL.createObjectURL(file);
+
+    state.previewUrls.set(selector, url);
+    el.src = url;
+    el.hidden = false;
+    el.load();
+  }
+
+  /*
+   * CAMERA
+   */
+
+  async function listCameras() {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      throw new Error("Camera selection is unavailable.");
+    }
+
+    const select = $("#sls3-camera-select");
+    const previous = select.value;
 
     const devices = await navigator.mediaDevices
       .enumerateDevices();
@@ -196,145 +302,222 @@
       d => d.kind === "videoinput"
     );
 
-    const select = $("#sls-camera-select");
-    const previous = select.value;
-
     select.replaceChildren();
 
-    [
-      ["user", "Front / Selfie Camera"],
-      ["environment", "Back / Rear Camera"]
-    ].forEach(([value, label]) => {
-      select.add(new Option(label, value));
-    });
+    select.add(new Option(
+      "Front / Selfie Camera",
+      "user"
+    ));
 
-    cameras.forEach((camera, index) => {
-      select.add(
-        new Option(
-          camera.label || `Camera ${index + 1}`,
-          "device:" + camera.deviceId
-        )
-      );
+    select.add(new Option(
+      "Back / Rear Camera",
+      "environment"
+    ));
+
+    cameras.forEach((device, index) => {
+      select.add(new Option(
+        device.label || `Camera ${index + 1}`,
+        "device:" + device.deviceId
+      ));
     });
 
     if ([...select.options].some(
-      o => o.value === previous
+      option => option.value === previous
     )) {
       select.value = previous;
     }
 
-    message(`${cameras.length} camera(s) detected.`);
+    status(`${cameras.length} camera(s) detected.`);
   }
 
-  async function openCamera(videoId) {
+  async function activateCamera(target) {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error(
-        "Camera requires HTTPS, browser permission " +
-        "and an available camera."
+        "Camera access requires HTTPS and a supported browser."
       );
     }
 
-    stopStream();
+    if (state.recording) {
+      throw new Error(
+        "Stop recording before switching cameras."
+      );
+    }
 
-    const selection = $("#sls-camera-select").value;
+    stopCamera();
 
-    const constraint = selection.startsWith("device:")
-      ? {
-          deviceId: {
-            exact: selection.substring(7)
-          }
+    const selection = $("#sls3-camera-select").value;
+
+    let videoConstraint;
+
+    if (selection.startsWith("device:")) {
+      videoConstraint = {
+        deviceId: {
+          exact: selection.slice(7)
         }
-      : {
-          facingMode: { ideal: selection },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        };
+      };
+    } else {
+      videoConstraint = {
+        facingMode: {
+          ideal: selection
+        },
+        width: {
+          ideal: 1280
+        },
+        height: {
+          ideal: 720
+        }
+      };
+    }
 
     state.stream = await navigator.mediaDevices
       .getUserMedia({
-        video: constraint,
+        video: videoConstraint,
         audio: false
       });
 
-    const video = $("#" + videoId);
+    const video = $(target);
+
     video.srcObject = state.stream;
     video.hidden = false;
+    video.muted = true;
+    video.playsInline = true;
 
     await video.play();
 
-    if (videoId === "sls-camera") {
-      $("#sls-photo-canvas").hidden = true;
-    } else {
-      $("#sls-video-playback").hidden = true;
+    // Wait for real camera dimensions.
+    if (!video.videoWidth) {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(
+            "Camera started but no video frames arrived."
+          ));
+        }, 8000);
+
+        video.addEventListener(
+          "loadedmetadata",
+          () => {
+            clearTimeout(timeout);
+            resolve();
+          },
+          { once: true }
+        );
+      });
     }
 
-    refreshCameras().catch(() => {});
-    message("Camera ready.");
+    if (target === "#sls3-photo-video") {
+      $("#sls3-photo-canvas").hidden = true;
+    }
+
+    if (target === "#sls3-video-camera") {
+      $("#sls3-video-playback").hidden = true;
+    }
+
+    listCameras().catch(() => {});
+    status("Camera ready. You can capture now.");
   }
 
-  function getPhotoCanvas() {
-    return $("#sls-photo-canvas");
+  /*
+   * PHOTO
+   */
+
+  function getCanvas() {
+    return $("#sls3-photo-canvas");
   }
 
   function renderPhoto() {
-    if (!state.source) return;
+    if (!state.photoSource) return;
 
-    const canvas = getPhotoCanvas();
+    const canvas = getCanvas();
+    const source = state.photoSource;
     const ctx = canvas.getContext("2d");
 
-    canvas.width = state.source.width;
-    canvas.height = state.source.height;
+    if (
+      canvas.width !== source.width ||
+      canvas.height !== source.height
+    ) {
+      canvas.width = source.width;
+      canvas.height = source.height;
+    }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(
+      0, 0, canvas.width, canvas.height
+    );
+
+    ctx.save();
 
     ctx.filter = FILTERS[state.filter] || "none";
+
     ctx.drawImage(
-      state.source,
-      0,
-      0,
+      source,
+      0, 0,
       canvas.width,
       canvas.height
     );
-    ctx.filter = "none";
 
-    const caption = $("#sls-caption").value.trim();
+    ctx.restore();
+
+    const caption = $("#sls3-caption").value.trim();
 
     if (caption) {
       const fontSize = Math.max(
-        24,
-        Math.round(canvas.width / 24)
+        20,
+        Math.round(canvas.width / 22)
       );
 
-      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.save();
+
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.textAlign = "center";
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = "#000000";
+      ctx.textBaseline = "bottom";
+      ctx.lineJoin = "round";
+
+      ctx.lineWidth = Math.max(
+        3,
+        fontSize / 10
+      );
+
+      ctx.strokeStyle = "#111111";
       ctx.fillStyle = "#ffffff";
 
-      const maxWidth = canvas.width * .9;
       const x = canvas.width / 2;
-      const y = canvas.height - fontSize * 1.2;
+      const y = canvas.height - fontSize * .6;
+      const width = canvas.width * .9;
 
-      ctx.strokeText(caption, x, y, maxWidth);
-      ctx.fillText(caption, x, y, maxWidth);
+      ctx.strokeText(caption, x, y, width);
+      ctx.fillText(caption, x, y, width);
+
+      ctx.restore();
     }
 
-    const sticker = $("#sls-sticker").value;
+    const sticker = $("#sls3-sticker").value;
 
     if (sticker) {
-      ctx.font = `${Math.round(canvas.width / 8)}px serif`;
+      ctx.save();
+
+      ctx.font = `${Math.round(
+        canvas.width / 7
+      )}px sans-serif`;
+
       ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+
       ctx.fillText(
         sticker,
         canvas.width - 20,
-        Math.round(canvas.height / 6)
+        20
       );
+
+      ctx.restore();
     }
 
-    ctx.strokeStyle = $("#sls-draw-color").value;
-    ctx.lineWidth = Math.max(3, canvas.width / 170);
+    ctx.save();
+
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(
+      3,
+      canvas.width / 180
+    );
 
     state.strokes.forEach(stroke => {
       if (!stroke.points.length) return;
@@ -342,16 +525,20 @@
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
 
-      stroke.points.forEach((point, i) => {
+      stroke.points.forEach((point, index) => {
         const x = point.x * canvas.width;
         const y = point.y * canvas.height;
 
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
       });
 
       if (stroke.points.length === 1) {
         const p = stroke.points[0];
+
         ctx.lineTo(
           p.x * canvas.width + .1,
           p.y * canvas.height + .1
@@ -360,22 +547,115 @@
 
       ctx.stroke();
     });
+
+    ctx.restore();
   }
 
-  async function savePhoto() {
-    if (!state.source) {
-      throw new Error("Capture or choose a photo first.");
+  async function setPhotoSource(source) {
+    const width =
+      source.videoWidth ||
+      source.naturalWidth ||
+      source.width;
+
+    const height =
+      source.videoHeight ||
+      source.naturalHeight ||
+      source.height;
+
+    if (!width || !height) {
+      throw new Error("Invalid photo dimensions.");
+    }
+
+    const base = document.createElement("canvas");
+
+    base.width = width;
+    base.height = height;
+
+    const ctx = base.getContext("2d");
+
+    ctx.drawImage(
+      source,
+      0, 0,
+      width, height
+    );
+
+    state.photoSource = base;
+    state.strokes = [];
+    state.photo = null;
+
+    stopCamera();
+
+    $("#sls3-photo-video").hidden = true;
+    getCanvas().hidden = false;
+
+    renderPhoto();
+
+    status("Photo captured. Edit or upload it.");
+  }
+
+  async function capturePhoto() {
+    const video = $("#sls3-photo-video");
+
+    if (
+      !state.stream ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+      throw new Error(
+        "Open a working camera before capturing."
+      );
+    }
+
+    await setPhotoSource(video);
+  }
+
+  async function importPhoto(file) {
+    if (!file || !file.type.startsWith("image/")) {
+      throw new Error("Choose a valid image file.");
+    }
+
+    const url = URL.createObjectURL(file);
+
+    try {
+      const image = new Image();
+
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(
+          new Error("Unable to decode image.")
+        );
+
+        image.src = url;
+      });
+
+      await setPhotoSource(image);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function exportPhoto() {
+    if (!state.photoSource) {
+      throw new Error(
+        "Capture or choose a photo first."
+      );
     }
 
     renderPhoto();
 
-    const canvas = getPhotoCanvas();
+    const canvas = getCanvas();
 
     const blob = await new Promise(resolve => {
-      canvas.toBlob(resolve, "image/jpeg", .92);
+      canvas.toBlob(
+        resolve,
+        "image/jpeg",
+        .9
+      );
     });
 
-    if (!blob) throw new Error("Photo export failed.");
+    if (!blob) {
+      throw new Error("Photo export failed.");
+    }
 
     state.photo = new File(
       [blob],
@@ -383,53 +663,13 @@
       { type: "image/jpeg" }
     );
 
-    message("Edited photo ready for download or upload.");
+    return state.photo;
   }
 
-  async function showPhoto(source) {
-    stopStream();
+  function setupDrawing() {
+    const canvas = getCanvas();
 
-    const canvas = getPhotoCanvas();
-
-    state.source = document.createElement("canvas");
-    state.source.width = source.videoWidth ||
-      source.naturalWidth || source.width;
-    state.source.height = source.videoHeight ||
-      source.naturalHeight || source.height;
-
-    state.source.getContext("2d").drawImage(
-      source,
-      0,
-      0,
-      state.source.width,
-      state.source.height
-    );
-
-    state.strokes = [];
-
-    $("#sls-camera").hidden = true;
-    canvas.hidden = false;
-
-    await savePhoto();
-  }
-
-  async function capturePhoto() {
-    const video = $("#sls-camera");
-
-    if (
-      !state.stream ||
-      !video.videoWidth
-    ) {
-      throw new Error("Open a working camera first.");
-    }
-
-    await showPhoto(video);
-  }
-
-  function bindDrawing() {
-    const canvas = getPhotoCanvas();
-
-    function position(event) {
+    function point(event) {
       const rect = canvas.getBoundingClientRect();
 
       return {
@@ -443,13 +683,13 @@
     }
 
     canvas.addEventListener("pointerdown", event => {
-      if (!state.source) return;
+      if (!state.photoSource) return;
 
       state.drawing = true;
 
       state.currentStroke = {
-        color: $("#sls-draw-color").value,
-        points: [position(event)]
+        color: $("#sls3-color").value,
+        points: [point(event)]
       };
 
       state.strokes.push(state.currentStroke);
@@ -459,112 +699,169 @@
     });
 
     canvas.addEventListener("pointermove", event => {
-      if (!state.drawing) return;
+      if (!state.drawing || !state.currentStroke) {
+        return;
+      }
 
-      state.currentStroke.points.push(position(event));
+      state.currentStroke.points.push(
+        point(event)
+      );
+
       renderPhoto();
     });
 
-    ["pointerup", "pointercancel"].forEach(name => {
-      canvas.addEventListener(name, () => {
-        state.drawing = false;
-      });
-    });
+    function endDrawing() {
+      state.drawing = false;
+      state.currentStroke = null;
+    }
+
+    canvas.addEventListener(
+      "pointerup",
+      endDrawing
+    );
+
+    canvas.addEventListener(
+      "pointercancel",
+      endDrawing
+    );
   }
+
+  /*
+   * VOICE
+   */
 
   async function startVoice() {
     if (!window.MediaRecorder) {
-      throw new Error("Audio recording is unsupported.");
+      throw new Error(
+        "This browser does not support MediaRecorder."
+      );
     }
 
-    if (
-      state.recorder &&
-      state.recorder.state === "recording"
-    ) return;
+    if (state.recording) return;
 
-    stopStream();
+    stopCamera();
 
-    state.stream = await navigator.mediaDevices
-      .getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
 
-    const mime = preferredMime("audio");
+    state.stream = stream;
+    state.chunks = [];
 
-    state.recorder = new MediaRecorder(
-      state.stream,
+    const mime = mimeFor("audio");
+
+    const recorder = new MediaRecorder(
+      stream,
       mime ? { mimeType: mime } : undefined
     );
 
-    state.chunks = [];
+    state.recorder = recorder;
 
-    state.recorder.ondataavailable = event => {
-      if (event.data.size) {
+    recorder.ondataavailable = event => {
+      if (event.data?.size) {
         state.chunks.push(event.data);
       }
     };
 
-    state.recorder.onstop = () => {
-      const type = state.recorder.mimeType ||
+    recorder.onerror = event => {
+      status(
+        safeError(event.error || new Error(
+          "Audio recording failed."
+        )),
+        true
+      );
+    };
+
+    recorder.onstop = () => {
+      const type = recorder.mimeType ||
         "audio/webm";
 
-      const ext = type.includes("mp4")
-        ? "m4a"
-        : "webm";
-
-      state.audio = new File(
-        [new Blob(state.chunks, { type })],
-        `solods-voice-${Date.now()}.${ext}`,
+      const blob = new Blob(
+        state.chunks,
         { type }
       );
 
-      setMediaPreview("#sls-audio", state.audio);
-      stopStream();
+      state.audio = makeFile(
+        blob,
+        "solods-voice",
+        "audio"
+      );
 
-      message("Voice recording ready.");
+      setPreview(
+        "#sls3-audio-player",
+        state.audio
+      );
+
+      state.recording = false;
+      stopStreamAfterRecording();
+
+      status(
+        "Recording saved. Preview, download or upload."
+      );
     };
 
-    state.recorder.start(250);
-    startTimer("sls-voice-timer");
+    recorder.start(250);
+    state.recording = true;
 
-    message("Recording voice...");
+    startTimer("sls3-audio-timer");
+
+    status("Voice recording in progress...");
   }
 
-  function stopRecording() {
-    if (
-      state.recorder &&
-      state.recorder.state === "recording"
-    ) {
-      state.recorder.stop();
-    }
-
+  function stopStreamAfterRecording() {
+    stopCamera();
+    stopVideoRendering();
     stopTimer();
   }
 
-  function encodeWAV(buffer) {
-    const channels = Math.min(2, buffer.numberOfChannels);
-    const samples = buffer.length;
-    const size = 44 + samples * channels * 2;
+  /*
+   * AUDIO EFFECTS
+   *
+   * Uses offline Web Audio processing.
+   * Output is WAV.
+   */
 
-    const data = new ArrayBuffer(size);
+  function wavEncode(buffer) {
+    const channels = Math.min(
+      2,
+      buffer.numberOfChannels
+    );
+
+    const length = buffer.length;
+    const bytes = 44 + length * channels * 2;
+
+    const data = new ArrayBuffer(bytes);
     const view = new DataView(data);
 
-    function text(offset, value) {
-      for (let i = 0; i < value.length; i++) {
+    function writeText(offset, text) {
+      for (let i = 0; i < text.length; i++) {
         view.setUint8(
           offset + i,
-          value.charCodeAt(i)
+          text.charCodeAt(i)
         );
       }
     }
 
-    text(0, "RIFF");
-    view.setUint32(4, size - 8, true);
-    text(8, "WAVE");
-    text(12, "fmt ");
+    writeText(0, "RIFF");
+    view.setUint32(4, bytes - 8, true);
+
+    writeText(8, "WAVE");
+    writeText(12, "fmt ");
 
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, channels, true);
-    view.setUint32(24, buffer.sampleRate, true);
+
+    view.setUint32(
+      24,
+      buffer.sampleRate,
+      true
+    );
 
     view.setUint32(
       28,
@@ -572,26 +869,38 @@
       true
     );
 
-    view.setUint16(32, channels * 2, true);
+    view.setUint16(
+      32,
+      channels * 2,
+      true
+    );
+
     view.setUint16(34, 16, true);
 
-    text(36, "data");
-    view.setUint32(40, size - 44, true);
+    writeText(36, "data");
+    view.setUint32(
+      40,
+      bytes - 44,
+      true
+    );
 
     let offset = 44;
 
-    for (let i = 0; i < samples; i++) {
+    for (let i = 0; i < length; i++) {
       for (let c = 0; c < channels; c++) {
-        const value = Math.max(
+        const sample = Math.max(
           -1,
-          Math.min(1, buffer.getChannelData(c)[i])
+          Math.min(
+            1,
+            buffer.getChannelData(c)[i]
+          )
         );
 
         view.setInt16(
           offset,
-          value < 0
-            ? value * 32768
-            : value * 32767,
+          sample < 0
+            ? sample * 32768
+            : sample * 32767,
           true
         );
 
@@ -599,19 +908,28 @@
       }
     }
 
-    return new Blob([data], {
-      type: "audio/wav"
-    });
+    return new Blob(
+      [data],
+      { type: "audio/wav" }
+    );
   }
 
-  async function applyVoiceEffect() {
+  async function applyAudioEffect() {
     if (!state.audio) {
-      throw new Error("Record voice first.");
+      throw new Error(
+        "Record a voice message first."
+      );
     }
 
-    const effect = $("#sls-voice-effect").value;
+    const effect = $("#sls3-audio-effect").value;
 
-    const Context = window.AudioContext ||
+    if (effect === "normal") {
+      status("Original audio is already selected.");
+      return;
+    }
+
+    const Context =
+      window.AudioContext ||
       window.webkitAudioContext;
 
     if (!Context) {
@@ -621,8 +939,11 @@
     const context = new Context();
 
     try {
-      const input = await state.audio.arrayBuffer();
-      const decoded = await context.decodeAudioData(input);
+      const data = await state.audio.arrayBuffer();
+
+      const decoded = await context.decodeAudioData(
+        data
+      );
 
       const offline = new OfflineAudioContext(
         decoded.numberOfChannels,
@@ -633,241 +954,270 @@
       const source = offline.createBufferSource();
       source.buffer = decoded;
 
-      let last = source;
+      let output = source;
+
+      const filter = offline.createBiquadFilter();
 
       if (effect === "telephone") {
-        const node = offline.createBiquadFilter();
-        node.type = "bandpass";
-        node.frequency.value = 1200;
-        node.Q.value = .7;
-        last.connect(node);
-        last = node;
+        filter.type = "bandpass";
+        filter.frequency.value = 1200;
+        filter.Q.value = .7;
+      } else if (effect === "deep") {
+        filter.type = "lowshelf";
+        filter.frequency.value = 250;
+        filter.gain.value = 12;
+      } else if (effect === "bright") {
+        filter.type = "highshelf";
+        filter.frequency.value = 1700;
+        filter.gain.value = 10;
+      } else if (effect === "muffled") {
+        filter.type = "lowpass";
+        filter.frequency.value = 650;
       }
 
-      if (effect === "robot") {
-        const node = offline.createBiquadFilter();
-        node.type = "lowpass";
-        node.frequency.value = 650;
-        last.connect(node);
-        last = node;
-      }
+      output.connect(filter);
+      output = filter;
 
-      if (effect === "deep") {
-        const node = offline.createBiquadFilter();
-        node.type = "lowshelf";
-        node.frequency.value = 280;
-        node.gain.value = 10;
-        last.connect(node);
-        last = node;
-      }
+      output.connect(offline.destination);
 
-      if (effect === "bright") {
-        const node = offline.createBiquadFilter();
-        node.type = "highshelf";
-        node.frequency.value = 1500;
-        node.gain.value = 9;
-        last.connect(node);
-        last = node;
-      }
-
-      last.connect(offline.destination);
       source.start();
 
       const rendered = await offline.startRendering();
-      const wav = encodeWAV(rendered);
+      const blob = wavEncode(rendered);
 
       state.audio = new File(
-        [wav],
-        `solods-voice-edited-${Date.now()}.wav`,
+        [blob],
+        `solods-voice-effect-${Date.now()}.wav`,
         { type: "audio/wav" }
       );
 
-      setMediaPreview("#sls-audio", state.audio);
+      setPreview(
+        "#sls3-audio-player",
+        state.audio
+      );
 
-      message("Voice effect exported successfully.");
+      status("Voice effect applied.");
     } finally {
       await context.close();
     }
   }
 
+  /*
+   * VIDEO
+   */
+
   async function startVideo() {
     if (!window.MediaRecorder) {
-      throw new Error("Video recording unsupported.");
+      throw new Error(
+        "Video recording is not supported."
+      );
     }
 
-    if (
-      state.recorder &&
-      state.recorder.state === "recording"
-    ) return;
+    if (state.recording) return;
 
     if (!state.stream) {
-      await openCamera("sls-video-preview");
+      await activateCamera("#sls3-video-camera");
     }
 
-    const video = $("#sls-video-preview");
+    const camera = $("#sls3-video-camera");
 
-    if (!video.videoWidth) {
-      throw new Error("Camera not ready.");
+    if (!camera.videoWidth) {
+      throw new Error(
+        "Camera has not produced video frames."
+      );
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    canvas.width = camera.videoWidth;
+    canvas.height = camera.videoHeight;
 
     const ctx = canvas.getContext("2d");
 
-    const drawFrame = () => {
+    const draw = () => {
       if (!state.stream) return;
 
       ctx.filter = FILTERS[state.filter] || "none";
+
       ctx.drawImage(
-        video,
-        0,
-        0,
+        camera,
+        0, 0,
         canvas.width,
         canvas.height
       );
+
       ctx.filter = "none";
 
-      state.frameId = requestAnimationFrame(drawFrame);
+      state.renderLoop = requestAnimationFrame(draw);
     };
 
-    drawFrame();
+    draw();
 
     const output = canvas.captureStream(25);
+    state.videoOutput = output;
 
     try {
-      const microphone = await navigator.mediaDevices
-        .getUserMedia({ audio: true });
+      state.videoAudioStream =
+        await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
 
-      state.extraTracks = microphone.getAudioTracks();
-
-      state.extraTracks.forEach(track => {
-        output.addTrack(track);
-      });
-    } catch {
-      message(
-        "Microphone unavailable. Recording silent video."
+      state.videoAudioStream
+        .getAudioTracks()
+        .forEach(track => {
+          output.addTrack(track);
+        });
+    } catch (_) {
+      status(
+        "Microphone unavailable. Recording video without audio."
       );
     }
 
-    const mime = preferredMime("video");
+    const mime = mimeFor("video");
 
-    state.recorder = new MediaRecorder(
+    const recorder = new MediaRecorder(
       output,
       mime ? { mimeType: mime } : undefined
     );
 
+    state.recorder = recorder;
     state.chunks = [];
 
-    state.recorder.ondataavailable = event => {
-      if (event.data.size) {
+    recorder.ondataavailable = event => {
+      if (event.data?.size) {
         state.chunks.push(event.data);
       }
     };
 
-    state.recorder.onstop = () => {
-      if (state.frameId !== null) {
-        cancelAnimationFrame(state.frameId);
-        state.frameId = null;
-      }
+    recorder.onerror = event => {
+      status(
+        safeError(event.error || new Error(
+          "Video recording failed."
+        )),
+        true
+      );
+    };
 
-      const type = state.recorder.mimeType ||
+    recorder.onstop = () => {
+      const type = recorder.mimeType ||
         "video/webm";
 
-      const ext = type.includes("mp4")
-        ? "mp4"
-        : "webm";
-
-      state.video = new File(
-        [new Blob(state.chunks, { type })],
-        `solods-video-${Date.now()}.${ext}`,
+      const blob = new Blob(
+        state.chunks,
         { type }
       );
 
-      const player = $("#sls-video-playback");
-      player.hidden = false;
+      state.video = makeFile(
+        blob,
+        "solods-video",
+        "video"
+      );
 
-      setMediaPreview(
-        "#sls-video-playback",
+      setPreview(
+        "#sls3-video-playback",
         state.video
       );
 
-      stopStream();
-      stopExtraTracks();
+      $("#sls3-video-camera").hidden = true;
 
-      message("Video ready for preview or upload.");
+      state.recording = false;
+
+      stopStreamAfterRecording();
+
+      status(
+        "Video ready. Preview, download or upload."
+      );
     };
 
-    state.recorder.start(250);
-    startTimer("sls-video-timer");
+    recorder.start(250);
+    state.recording = true;
 
-    message("Recording video...");
-  }
+    startTimer("sls3-video-timer");
 
-  function setMediaPreview(selector, file) {
-    const player = $(selector);
-
-    if (player.dataset.objectUrl) {
-      URL.revokeObjectURL(player.dataset.objectUrl);
-    }
-
-    const url = URL.createObjectURL(file);
-
-    player.dataset.objectUrl = url;
-    player.src = url;
-  }
-
-  function download() {
-    const file = activeFile();
-
-    if (!file) {
-      throw new Error("Create a photo, audio or video first.");
-    }
-
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = file.name;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    status("Recording video...");
   }
 
   /*
-   * IMPORTANT:
-   * Your dashboard uses uploadFiles(inputId, type).
-   *
-   * This temporary input fixes:
-   * "document.getElementById(...).files is undefined"
+   * DOWNLOAD AND BOX UPLOAD
    */
-  async function upload() {
-    if (state.busy) return;
 
-    if (state.tab === "photo" && state.source) {
-      await savePhoto();
+  async function selectedFile() {
+    if (state.tab === "photo") {
+      return await exportPhoto();
     }
 
-    const file = activeFile();
-
-    if (!file) {
-      throw new Error("Create a file first.");
+    if (state.tab === "voice") {
+      return state.audio;
     }
 
-    if (file.size > 20 * 1024 * 1024) {
+    return state.video;
+  }
+
+  async function downloadCurrent() {
+    if (state.recording) {
       throw new Error(
-        "File exceeds the 20 MB dashboard limit. " +
-        "Download it instead."
+        "Stop recording before downloading."
       );
     }
 
+    const file = await selectedFile();
+
+    if (!file) {
+      throw new Error("Nothing to download yet.");
+    }
+
+    const url = URL.createObjectURL(file);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 30000);
+  }
+
+  async function uploadCurrent() {
+    if (state.busy) return;
+
+    if (state.recording) {
+      throw new Error(
+        "Stop recording before uploading."
+      );
+    }
+
+    const file = await selectedFile();
+
+    if (!file) {
+      throw new Error(
+        "Capture or record something first."
+      );
+    }
+
+    if (file.size > LIMIT) {
+      throw new Error(
+        "File exceeds the 20 MB upload limit. " +
+        "Use Download instead."
+      );
+    }
+
+    /*
+     * This is the dashboard's existing interface:
+     * uploadFiles(inputId, type)
+     *
+     * A real file input must exist in the DOM.
+     */
     if (typeof window.uploadFiles !== "function") {
       throw new Error(
-        "Dashboard uploadFiles() is unavailable."
+        "Dashboard uploadFiles() is unavailable. " +
+        "Check the existing dashboard integration."
       );
     }
 
@@ -875,32 +1225,28 @@
       ? "photos"
       : "files";
 
-    let input = $("#sls-upload-input");
-
-    if (!input) {
-      input = document.createElement("input");
-      input.id = "sls-upload-input";
-      input.type = "file";
-      input.hidden = true;
-      document.body.appendChild(input);
-    }
+    const input = $("#sls3-upload-input");
 
     const transfer = new DataTransfer();
     transfer.items.add(file);
+
     input.files = transfer.files;
 
     state.busy = true;
-    message("Uploading to soloDS Box...");
+    status("Uploading to soloDS Box...");
 
     try {
-      // Correct argument order:
-      await window.uploadFiles(input.id, category);
+      await window.uploadFiles(
+        input.id,
+        category
+      );
 
-      message(
-        "Upload request completed. Verify the file in " +
+      status(
+        "Upload function finished. Check " +
         (category === "photos"
-          ? "Box Photos."
-          : "Box Files.")
+          ? "Box Photos"
+          : "Box Files") +
+        " to confirm the saved file."
       );
     } finally {
       state.busy = false;
@@ -908,159 +1254,182 @@
     }
   }
 
-  const HTML = `
-    <div id="sls-overlay" hidden>
-      <div id="sls-dialog"
-           role="dialog"
-           aria-modal="true"
-           aria-labelledby="sls-title">
+  /*
+   * USER INTERFACE
+   */
 
-        <header class="sls-header">
+  const HTML = `
+    <div id="sls3-overlay" hidden>
+      <section id="sls3-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sls3-title">
+
+        <header class="sls3-header">
           <div>
-            <h2 id="sls-title">✦ soloDS Live Studio</h2>
-            <small>Create • Edit • Upload to Drive</small>
+            <h2 id="sls3-title">
+              ✦ soloDS Live Studio
+            </h2>
+            <p>Capture • Create • Upload</p>
           </div>
 
           <button data-action="close"
-                  aria-label="Close Studio">✕</button>
+            aria-label="Close">✕</button>
         </header>
 
-        <div class="sls-banner">
-          <strong>✨ A special soloDS Box Pro feature</strong>
+        <div class="sls3-feature">
+          <strong>
+            ✨ A special soloDS Box Pro feature
+          </strong>
           <p>
-            Go beyond ordinary file uploads. Record your
-            voice, capture and personalize photos, or
-            create videos — then upload them directly
-            to your connected Google Drive, all from
-            one creative workspace.
+            Record voice, take and edit photos, and
+            create videos in one workspace. Preview
+            your creation and send it straight to
+            your connected Google Drive.
           </p>
         </div>
 
-        <nav class="sls-tabs">
-          <button class="sls-tab active"
-                  data-tab="photo">📸 Photo</button>
-          <button class="sls-tab"
-                  data-tab="voice">🎙 Voice</button>
-          <button class="sls-tab"
-                  data-tab="video">🎥 Video</button>
-        </nav>
+        <div class="sls3-tabs">
+          <button class="sls3-tab active"
+            data-tab="photo">📸 Photo</button>
+          <button class="sls3-tab"
+            data-tab="voice">🎙 Voice</button>
+          <button class="sls3-tab"
+            data-tab="video">🎥 Video</button>
+        </div>
 
-        <div class="sls-layout">
-          <main class="sls-stage">
+        <div class="sls3-layout">
+          <div class="sls3-main">
 
-            <section id="sls-photo"
-                     class="sls-panel active">
-              <video id="sls-camera"
-                     autoplay
-                     muted
-                     playsinline></video>
+            <section class="sls3-panel active"
+              data-panel="photo">
 
-              <canvas id="sls-photo-canvas"
-                      width="960"
-                      height="720"
-                      hidden></canvas>
+              <video id="sls3-photo-video"
+                autoplay
+                muted
+                playsinline
+                hidden></video>
 
-              <div class="sls-buttons">
-                <button data-action="photo-camera">
+              <canvas id="sls3-photo-canvas"
+                width="960"
+                height="720"
+                hidden></canvas>
+
+              <div class="sls3-actions">
+                <button data-action="open-photo-camera">
                   📷 Open Camera
                 </button>
-                <button data-action="photo-capture">
-                  Capture
+
+                <button data-action="capture-photo">
+                  📸 Capture
                 </button>
-                <button data-action="photo-retake">
-                  Retake
+
+                <button data-action="retake-photo">
+                  🔄 Retake
                 </button>
-                <button data-action="photo-choose">
-                  Choose Photo
+
+                <button data-action="choose-photo">
+                  🖼 Choose Photo
                 </button>
               </div>
 
-              <input id="sls-photo-input"
-                     type="file"
-                     accept="image/*"
-                     hidden>
+              <input id="sls3-photo-input"
+                type="file"
+                accept="image/*"
+                hidden>
             </section>
 
-            <section id="sls-voice"
-                     class="sls-panel">
-              <div class="sls-mic">🎙️</div>
-              <div id="sls-voice-timer">00:00</div>
+            <section class="sls3-panel"
+              data-panel="voice">
 
-              <div class="sls-buttons">
-                <button data-action="voice-start">
+              <div class="sls3-mic">🎙️</div>
+
+              <div id="sls3-audio-timer"
+                class="sls3-timer">00:00</div>
+
+              <div class="sls3-actions">
+                <button data-action="start-voice">
                   ⏺ Record
                 </button>
-                <button data-action="voice-stop">
+
+                <button data-action="stop-record">
                   ⏹ Stop
                 </button>
               </div>
 
-              <audio id="sls-audio" controls></audio>
+              <audio id="sls3-audio-player"
+                controls></audio>
 
               <label>
                 Voice Effect
-                <select id="sls-voice-effect">
-                  <option value="normal">Original</option>
-                  <option value="robot">Robot-like</option>
-                  <option value="telephone">Telephone</option>
-                  <option value="deep">Deep Tone</option>
-                  <option value="bright">Bright Tone</option>
+                <select id="sls3-audio-effect">
+                  <option value="normal">
+                    Original
+                  </option>
+                  <option value="telephone">
+                    Telephone
+                  </option>
+                  <option value="deep">
+                    Deep Tone
+                  </option>
+                  <option value="bright">
+                    Bright Tone
+                  </option>
+                  <option value="muffled">
+                    Muffled
+                  </option>
                 </select>
               </label>
 
-              <label>
-                Playback Speed
-                <select id="sls-speed">
-                  <option value=".75">0.75×</option>
-                  <option value="1" selected>Normal</option>
-                  <option value="1.25">1.25×</option>
-                  <option value="1.5">1.5×</option>
-                </select>
-              </label>
-
-              <button data-action="voice-effect">
-                Apply Effect & Export
+              <button data-action="apply-audio">
+                Apply Audio Effect
               </button>
             </section>
 
-            <section id="sls-video"
-                     class="sls-panel">
-              <video id="sls-video-preview"
-                     autoplay
-                     muted
-                     playsinline></video>
+            <section class="sls3-panel"
+              data-panel="video">
 
-              <video id="sls-video-playback"
-                     controls
-                     hidden></video>
+              <video id="sls3-video-camera"
+                autoplay
+                muted
+                playsinline
+                hidden></video>
 
-              <div id="sls-video-timer">00:00</div>
+              <video id="sls3-video-playback"
+                controls
+                hidden></video>
 
-              <div class="sls-buttons">
-                <button data-action="video-camera">
+              <div id="sls3-video-timer"
+                class="sls3-timer">00:00</div>
+
+              <div class="sls3-actions">
+                <button data-action="open-video-camera">
                   📷 Open Camera
                 </button>
-                <button data-action="video-start">
+
+                <button data-action="start-video">
                   ⏺ Record Video
                 </button>
-                <button data-action="video-stop">
+
+                <button data-action="stop-record">
                   ⏹ Stop
                 </button>
               </div>
             </section>
-          </main>
 
-          <aside class="sls-tools">
-            <h3>Creative Tools</h3>
+          </div>
+
+          <aside class="sls3-tools">
+            <h3>Creative Controls</h3>
 
             <label>
-              Camera
-              <select id="sls-camera-select">
+              Select Camera
+              <select id="sls3-camera-select">
                 <option value="user">
-                  Front / Selfie Camera
+                  Front / Selfie
                 </option>
                 <option value="environment">
-                  Back / Rear Camera
+                  Back / Rear
                 </option>
               </select>
             </label>
@@ -1070,8 +1439,8 @@
             </button>
 
             <label>
-              Live Filter
-              <select id="sls-filter">
+              Color Filter
+              <select id="sls3-filter">
                 ${Object.keys(FILTERS).map(name => `
                   <option value="${name}">
                     ${name.charAt(0).toUpperCase() +
@@ -1083,282 +1452,280 @@
 
             <label>
               Photo Caption
-              <input id="sls-caption"
-                     placeholder="Enter caption"
-                     maxlength="100">
+              <input id="sls3-caption"
+                maxlength="100"
+                placeholder="Write a caption">
             </label>
 
             <label>
               Sticker
-              <select id="sls-sticker">
+              <select id="sls3-sticker">
                 <option value="">None</option>
                 <option>✨</option>
                 <option>❤️</option>
                 <option>😎</option>
-                <option>🎉</option>
                 <option>🌈</option>
+                <option>🎉</option>
                 <option>🔥</option>
               </select>
             </label>
 
             <label>
               Drawing Color
-              <input id="sls-draw-color"
-                     type="color"
-                     value="#ff4081">
+              <input id="sls3-color"
+                type="color"
+                value="#ff4081">
             </label>
 
-            <div class="sls-buttons">
-              <button data-action="photo-apply">
-                Apply Photo Edits
-              </button>
-              <button data-action="photo-clear">
+            <div class="sls3-actions">
+              <button data-action="clear-drawing">
                 Clear Drawing
               </button>
             </div>
 
-            <p class="sls-help">
-              Draw directly on a captured photo
-              using your mouse or finger.
-              Video recording uses the selected filter.
+            <p class="sls3-hint">
+              Edit captured photos with filters,
+              captions, stickers and drawing.
+              Video uses the selected color filter.
             </p>
           </aside>
         </div>
 
-        <footer class="sls-footer">
+        <footer class="sls3-footer">
           <button data-action="download">
             ⬇ Download
           </button>
 
-          <button class="sls-primary"
-                  data-action="upload">
+          <button data-action="upload"
+            class="sls3-primary">
             ☁ Upload to Box
           </button>
 
-          <div id="sls-message" role="status"></div>
+          <div id="sls3-status"
+            role="status"></div>
         </footer>
-      </div>
+      </section>
     </div>
+
+    <input type="file"
+      id="sls3-upload-input"
+      hidden>
   `;
 
   const CSS = `
-    #sls-overlay[hidden] {
+    #sls3-overlay[hidden],
+    #sls3-overlay [hidden] {
       display: none !important;
     }
 
-    #sls-overlay {
+    #sls3-overlay {
       position: fixed;
       inset: 0;
       z-index: 2147483000;
-      background: rgba(2, 8, 23, .88);
-      backdrop-filter: blur(9px);
       display: grid;
       place-items: center;
       padding: 12px;
-      color: #edf4ff;
+      background: rgba(3, 8, 22, .88);
+      backdrop-filter: blur(9px);
+      color: #edf5ff;
       font: 14px system-ui, sans-serif;
     }
 
-    #sls-dialog {
+    #sls3-dialog {
       width: min(1050px, 100%);
       max-height: 95dvh;
       overflow: auto;
       box-sizing: border-box;
       background: linear-gradient(
-        145deg, #182541, #0a1225
+        145deg, #1b2a47, #0a1225
       );
-      border: 1px solid #3c5075;
+      border: 1px solid #405579;
       border-radius: 22px;
       padding: 20px;
       box-shadow: 0 25px 90px #000a;
     }
 
-    #sls-dialog * {
+    #sls3-dialog * {
       box-sizing: border-box;
     }
 
-    #sls-dialog button,
-    #sls-dialog input,
-    #sls-dialog select {
+    #sls3-dialog button,
+    #sls3-dialog input,
+    #sls3-dialog select {
       font: inherit;
     }
 
-    #sls-dialog button {
-      background: #233755;
-      border: 1px solid #456087;
+    #sls3-dialog button {
+      background: #253957;
       color: #eef6ff;
-      padding: 10px 12px;
+      border: 1px solid #486286;
       border-radius: 10px;
+      padding: 10px 12px;
       cursor: pointer;
     }
 
-    #sls-dialog button:hover {
-      background: #31517c;
+    #sls3-dialog button:hover {
+      background: #36547d;
     }
 
-    #sls-dialog .sls-primary,
-    #sls-dialog .sls-tab.active {
+    #sls3-dialog .sls3-primary,
+    #sls3-dialog .sls3-tab.active {
       background: linear-gradient(
-        110deg, #7863e9, #159bb9
+        110deg, #7863eb, #159fc0
       );
       border-color: transparent;
     }
 
-    .sls-header {
+    .sls3-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
     }
 
-    .sls-header h2 {
+    .sls3-header h2 {
       margin: 0;
-      font-size: 22px;
+      font-size: 23px;
     }
 
-    .sls-header small {
-      color: #a8bddd;
+    .sls3-header p {
+      margin: 4px 0 0;
+      color: #9db8d8;
+      font-size: 12px;
     }
 
-    .sls-banner {
-      background: #17375d;
-      border: 1px solid #3d709a;
-      border-radius: 13px;
-      padding: 12px 15px;
+    .sls3-feature {
       margin: 15px 0;
+      padding: 13px;
+      border: 1px solid #386b9e;
+      border-radius: 13px;
+      background: #15365c;
     }
 
-    .sls-banner strong {
-      color: #92edff;
+    .sls3-feature strong {
+      color: #8fe9ff;
     }
 
-    .sls-banner p {
-      color: #d0e4fb;
+    .sls3-feature p {
+      color: #d0e5fb;
       font-size: 12px;
       line-height: 1.6;
       margin: 6px 0 0;
     }
 
-    .sls-tabs {
+    .sls3-tabs {
       display: flex;
       gap: 8px;
       margin-bottom: 14px;
     }
 
-    .sls-tabs button {
+    .sls3-tabs button {
       flex: 1;
     }
 
-    .sls-layout {
+    .sls3-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 250px;
+      grid-template-columns: minmax(0, 1fr) 260px;
       gap: 14px;
     }
 
-    .sls-stage,
-    .sls-tools {
-      background: #0e1b32;
-      border: 1px solid #304561;
+    .sls3-main,
+    .sls3-tools {
+      background: #101d34;
+      border: 1px solid #304665;
       border-radius: 14px;
       padding: 14px;
       min-width: 0;
     }
 
-    .sls-panel {
+    .sls3-panel {
       display: none;
     }
 
-    .sls-panel.active {
+    .sls3-panel.active {
       display: block;
     }
 
-    #sls-camera,
-    #sls-photo-canvas,
-    #sls-video-preview,
-    #sls-video-playback {
-      display: block;
+    #sls3-photo-video,
+    #sls3-photo-canvas,
+    #sls3-video-camera,
+    #sls3-video-playback {
       width: 100%;
-      max-height: 380px;
-      object-fit: contain;
+      max-height: 420px;
+      display: block;
       background: #020617;
       border-radius: 12px;
+      object-fit: contain;
     }
 
-    #sls-photo-canvas {
+    #sls3-photo-canvas {
       touch-action: none;
       cursor: crosshair;
     }
 
-    #sls-dialog [hidden] {
-      display: none !important;
-    }
-
-    .sls-buttons {
+    .sls3-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin: 12px 0;
     }
 
-    .sls-tools h3 {
+    .sls3-tools h3 {
       margin-top: 0;
     }
 
-    .sls-tools label,
-    #sls-voice label {
+    .sls3-tools label,
+    .sls3-panel label {
       display: block;
       margin: 12px 0;
+      color: #c8d8ed;
       font-size: 13px;
-      color: #c7d6ee;
     }
 
-    .sls-tools input,
-    .sls-tools select,
-    #sls-voice select {
+    .sls3-tools input,
+    .sls3-tools select,
+    .sls3-panel select {
       display: block;
       width: 100%;
       margin-top: 6px;
-      border: 1px solid #3c5174;
-      background: #1b2b48;
+      padding: 10px;
+      background: #1b2c49;
       color: white;
+      border: 1px solid #405879;
       border-radius: 9px;
-      padding: 9px;
     }
 
-    .sls-tools input[type="color"] {
+    .sls3-tools input[type="color"] {
       height: 44px;
     }
 
-    .sls-help {
-      color: #a9bad5;
+    .sls3-hint {
+      color: #a7bad6;
       font-size: 12px;
       line-height: 1.6;
     }
 
-    #sls-voice {
+    .sls3-mic {
       text-align: center;
+      font-size: 65px;
+      margin: 25px 0;
     }
 
-    #sls-voice audio {
+    .sls3-timer {
+      font-size: 32px;
+      font-weight: bold;
+      color: #8deaff;
+      text-align: center;
+      margin: 14px 0;
+    }
+
+    #sls3-audio-player {
+      display: block;
       width: 100%;
       margin: 15px 0;
     }
 
-    .sls-mic {
-      font-size: 65px;
-      margin: 24px 0;
-    }
-
-    #sls-voice-timer,
-    #sls-video-timer {
-      font-size: 30px;
-      font-weight: bold;
-      color: #8fe9ff;
-      text-align: center;
-      margin: 12px 0;
-    }
-
-    .sls-footer {
+    .sls3-footer {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
@@ -1366,52 +1733,64 @@
       margin-top: 15px;
     }
 
-    #sls-message {
+    #sls3-status {
       flex: 1;
       min-width: 200px;
       font-size: 12px;
+      color: #8cf0c8;
     }
 
-    @media (max-width: 700px) {
-      #sls-dialog {
+    #sls3-status.error {
+      color: #ff9eae;
+    }
+
+    @media (max-width: 720px) {
+      #sls3-dialog {
         padding: 12px;
         border-radius: 15px;
       }
 
-      .sls-layout {
+      .sls3-layout {
         grid-template-columns: 1fr;
       }
 
-      .sls-buttons button {
+      .sls3-actions button {
         flex: 1;
       }
 
-      .sls-header h2 {
-        font-size: 18px;
+      .sls3-header h2 {
+        font-size: 19px;
       }
     }
   `;
 
-  function addSidebarEntry() {
-    if ($("#sls-sidebar-entry")) return true;
+  /*
+   * SIDEBAR INTEGRATION
+   */
+
+  function installSidebarEntry() {
+    if ($("#sls3-sidebar-entry")) return true;
 
     const sidebar = $("#sds-modern-vertical");
     if (!sidebar) return false;
 
-    const elements = [
+    const candidates = [
       ...sidebar.querySelectorAll(
         "button, a, [role='button']"
       )
     ];
 
-    const fileDrop = elements.find(el =>
-      /file\s*drop/i.test(el.textContent || "")
+    const fileDrop = candidates.find(el =>
+      /file\s*drop/i.test(
+        el.textContent || ""
+      )
     );
 
     if (!fileDrop) return false;
 
     const entry = fileDrop.cloneNode(true);
-    entry.id = "sls-sidebar-entry";
+
+    entry.id = "sls3-sidebar-entry";
 
     entry.removeAttribute("href");
     entry.removeAttribute("onclick");
@@ -1452,8 +1831,76 @@
     return true;
   }
 
+  /*
+   * EVENTS
+   */
+
+  async function handleAction(action) {
+    switch (action) {
+      case "close":
+        closeStudio();
+        break;
+
+      case "refresh-cameras":
+        await listCameras();
+        break;
+
+      case "open-photo-camera":
+        await activateCamera("#sls3-photo-video");
+        break;
+
+      case "capture-photo":
+        await capturePhoto();
+        break;
+
+      case "retake-photo":
+        state.photoSource = null;
+        state.photo = null;
+        state.strokes = [];
+        await activateCamera("#sls3-photo-video");
+        break;
+
+      case "choose-photo":
+        $("#sls3-photo-input").click();
+        break;
+
+      case "clear-drawing":
+        state.strokes = [];
+        renderPhoto();
+        break;
+
+      case "start-voice":
+        await startVoice();
+        break;
+
+      case "stop-record":
+        stopRecorder();
+        break;
+
+      case "apply-audio":
+        await applyAudioEffect();
+        break;
+
+      case "open-video-camera":
+        await activateCamera("#sls3-video-camera");
+        break;
+
+      case "start-video":
+        await startVideo();
+        break;
+
+      case "download":
+        await downloadCurrent();
+        break;
+
+      case "upload":
+        await uploadCurrent();
+        break;
+    }
+  }
+
   function bindEvents() {
-    const overlay = $("#sls-overlay");
+    const overlay = $("#sls3-overlay");
 
     overlay.addEventListener("click", async event => {
       if (event.target === overlay) {
@@ -1464,7 +1911,7 @@
       const tab = event.target.closest("[data-tab]");
 
       if (tab) {
-        switchTab(tab.dataset.tab);
+        selectTab(tab.dataset.tab);
         return;
       }
 
@@ -1474,119 +1921,38 @@
 
       if (!button) return;
 
-      const action = button.dataset.action;
-
       try {
-        switch (action) {
-          case "close":
-            closeStudio();
-            break;
-
-          case "refresh-cameras":
-            await refreshCameras();
-            break;
-
-          case "photo-camera":
-            await openCamera("sls-camera");
-            break;
-
-          case "photo-capture":
-            await capturePhoto();
-            break;
-
-          case "photo-retake":
-            state.photo = null;
-            state.source = null;
-            state.strokes = [];
-            await openCamera("sls-camera");
-            break;
-
-          case "photo-choose":
-            $("#sls-photo-input").click();
-            break;
-
-          case "photo-apply":
-            await savePhoto();
-            break;
-
-          case "photo-clear":
-            state.strokes = [];
-            renderPhoto();
-            break;
-
-          case "voice-start":
-            await startVoice();
-            break;
-
-          case "voice-stop":
-            stopRecording();
-            break;
-
-          case "voice-effect":
-            await applyVoiceEffect();
-            break;
-
-          case "video-camera":
-            await openCamera("sls-video-preview");
-            break;
-
-          case "video-start":
-            await startVideo();
-            break;
-
-          case "video-stop":
-            stopRecording();
-            break;
-
-          case "download":
-            if (
-              state.tab === "photo" &&
-              state.source
-            ) {
-              await savePhoto();
-            }
-            download();
-            break;
-
-          case "upload":
-            await upload();
-            break;
-        }
+        await handleAction(
+          button.dataset.action
+        );
       } catch (error) {
-        message(error.message || String(error), true);
-        console.error("[soloDS Live Studio]", error);
+        console.error(
+          "[soloDS Live Studio]",
+          error
+        );
+
+        status(safeError(error), true);
       }
     });
 
-    $("#sls-photo-input").addEventListener(
+    $("#sls3-photo-input").addEventListener(
       "change",
-      event => {
+      async event => {
         const file = event.target.files?.[0];
+
         if (!file) return;
 
-        const url = URL.createObjectURL(file);
-        const image = new Image();
+        try {
+          await importPhoto(file);
+        } catch (error) {
+          status(safeError(error), true);
+        }
 
-        image.onload = async () => {
-          try {
-            await showPhoto(image);
-          } catch (error) {
-            message(error.message, true);
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        };
-
-        image.onerror = () => {
-          URL.revokeObjectURL(url);
-          message("Could not open photo.", true);
-        };
-
-        image.src = url;
+        event.target.value = "";
       }
     );
 
-    $("#sls-filter").addEventListener(
+    $("#sls3-filter").addEventListener(
       "change",
       event => {
         state.filter = event.target.value;
@@ -1594,25 +1960,25 @@
       }
     );
 
-    ["#sls-caption", "#sls-sticker"].forEach(id => {
-      $(id).addEventListener("input", renderPhoto);
-    });
-
-    $("#sls-speed").addEventListener(
-      "change",
-      event => {
-        $("#sls-audio").playbackRate =
-          Number(event.target.value);
-      }
+    $("#sls3-caption").addEventListener(
+      "input",
+      renderPhoto
     );
 
-    $("#sls-camera-select").addEventListener(
+    $("#sls3-sticker").addEventListener(
+      "change",
+      renderPhoto
+    );
+
+    $("#sls3-camera-select").addEventListener(
       "change",
       () => {
-        stopStream();
-        message(
-          "Camera changed. Click Open Camera to activate it."
-        );
+        if (!state.recording) {
+          stopCamera();
+          status(
+            "Camera selected. Press Open Camera."
+          );
+        }
       }
     );
 
@@ -1627,11 +1993,12 @@
   }
 
   function init() {
-    if ($("#sls-overlay")) return;
+    if ($("#sls3-overlay")) return;
 
     const style = document.createElement("style");
-    style.id = "sls-styles";
+    style.id = "sls3-styles";
     style.textContent = CSS;
+
     document.head.appendChild(style);
 
     document.body.insertAdjacentHTML(
@@ -1640,12 +2007,14 @@
     );
 
     bindEvents();
-    bindDrawing();
+    setupDrawing();
 
-    if (addSidebarEntry()) return;
+    if (installSidebarEntry()) return;
 
     const observer = new MutationObserver(() => {
-      if (addSidebarEntry()) observer.disconnect();
+      if (installSidebarEntry()) {
+        observer.disconnect();
+      }
     });
 
     observer.observe(document.body, {
@@ -1653,7 +2022,9 @@
       subtree: true
     });
 
-    setTimeout(() => observer.disconnect(), 60000);
+    setTimeout(() => {
+      observer.disconnect();
+    }, 60000);
   }
 
   if (document.readyState === "loading") {
@@ -1665,4 +2036,8 @@
   } else {
     init();
   }
+
+  console.info(
+    `[soloDS Live Studio] Version ${VERSION} initialized`
+  );
 })();
