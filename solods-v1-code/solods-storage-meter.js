@@ -28,11 +28,10 @@
 
   // Change this list only if your sidebar has another ID.
   const SIDEBAR_SELECTORS = [
-    "#sds-elegant",
-    ".se-sidebar",
-    "#solods-sidebar"
-  ];
-
+  "#sds-modern-vertical",
+  "#sds-side",
+  "#sds-elegant"
+];
   function getSidebar() {
     for (const selector of SIDEBAR_SELECTORS) {
       const element = document.querySelector(selector);
