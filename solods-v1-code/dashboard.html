@@ -112,6 +112,9 @@ let currentTab = "photos";
 let userName = '';
 let accessToken = localStorage.getItem('box_token') || '';
 
+  // Give the storage meter access to the existing Google Drive token
+window.solodsGetDriveToken = () => accessToken;
+
 function changeTheme(theme){document.documentElement.setAttribute('data-theme', theme);localStorage.setItem('theme', theme);}
 const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
